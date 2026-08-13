@@ -13,6 +13,6 @@ During the active gate:
 
 A pre-unlock rescue is exceptional, not a faster research mode. The experiment record should say what was attempted, what remains blocked, why the external source class is needed, and what narrower alternatives failed. The maintainer's durable unlock should identify only the bounded question/source class needed to proceed. Downstream findings that depend on the rescue remain `external-assisted`.
 
-After the blind gate ends, preserve the independent result before external comparison. Record agreements, disagreements, missed structures, and false positives as a separate verification result so outside knowledge does not rewrite the historical blind-research record.
+After the blind gate ends, preserve the independent result before external comparison. The separate verification result reports agreements, disagreements, missed structures, and false positives so outside knowledge does not rewrite the historical blind-research record.
 
 For operator-provided tools or artifacts, separate generic capability from recovered target knowledge. A generic debugger/disassembler/compiler tool may be accepted under normal project rules; an artifact containing target-specific recovered addresses, symbols, structures, pseudocode, or semantic maps follows the same contamination/rescue policy as any other external recovered source.
