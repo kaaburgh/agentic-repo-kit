@@ -3,7 +3,6 @@ name: Release
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -53,16 +52,10 @@ jobs:
         id: gate
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
           BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
           if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
             changed="$(git show --format= --name-only "$CURRENT_SHA")"
           else
@@ -105,10 +98,22 @@ jobs:
             exit 1
           fi
 
-          echo "exists=$release_exists" >> "$GITHUB_OUTPUT"
+          assets_complete=false
+          if [[ "$release_exists" == true ]]; then
+            asset_names="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+            version='${{ steps.identity.outputs.version }}'
+            if grep -qx "agentic-repo-kit-$version.tar.gz" <<<"$asset_names" \
+              && grep -qx "agentic-repo-kit-$version.zip" <<<"$asset_names" \
+              && grep -qx 'SHA256SUMS' <<<"$asset_names"; then
+              assets_complete=true
+            fi
+          fi
+
+          echo "release_exists=$release_exists" >> "$GITHUB_OUTPUT"
+          echo "assets_complete=$assets_complete" >> "$GITHUB_OUTPUT"
 
       - name: Build deterministic source archives
-        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.exists == 'false'
+        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.assets_complete != 'true'
         shell: bash
         env:
           VERSION: ${{ steps.identity.outputs.version }}
@@ -124,8 +129,8 @@ jobs:
             sha256sum "agentic-repo-kit-$VERSION.tar.gz" "agentic-repo-kit-$VERSION.zip" > SHA256SUMS
           )
 
-      - name: Publish GitHub Release
-        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.exists == 'false'
+      - name: Create GitHub Release
+        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.release_exists == 'false'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -141,3 +146,18 @@ jobs:
             --target "$CURRENT_SHA" \
             --title "agentic-repo-kit $VERSION" \
             --generate-notes
+
+      - name: Repair missing release assets
+        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.release_exists == 'true' && steps.state.outputs.assets_complete != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.identity.outputs.tag }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            "dist/agentic-repo-kit-$VERSION.tar.gz" \
+            "dist/agentic-repo-kit-$VERSION.zip" \
+            "dist/SHA256SUMS" \
+            --clobber
