@@ -70,14 +70,14 @@ playbook_files = ["docs/agent-playbook.local.md"]
 pr_files = ["docs/pr-policy.local.md"]
 ```
 
-Local fragment paths must remain inside the repository and may not traverse symlinks. The lock file records tool/config/profile provenance and SHA-256 hashes for generated files. `check` re-renders expected content, detects drift/missing outputs, confirms the configured roadmap exists, and checks relative Markdown links in the generated contract and roadmap.
+Local fragment paths must remain inside the repository and may not traverse symlinks. The lock file records tool/config/profile provenance and SHA-256 hashes for generated files. `check` re-renders expected content, detects drift/missing outputs, confirms the configured roadmap exists, checks relative Markdown links, and—once the roadmap uses normalized ID-bearing item headings—validates unique IDs, required status/dependency fields, dependency references, and an acyclic dependency graph. Milestone-only planning documents remain valid until the semantic normalization pass creates structured items.
 
 ## Commands
 
 - `agentic-repo inspect [root]` — report repository signals without changing files.
 - `agentic-repo profiles` — list built-in profiles.
 - `agentic-repo bootstrap [root]` — generate the self-contained repository contract and lock.
-- `agentic-repo check [root]` — fail if the generated contract drifted or has broken relative links.
+- `agentic-repo check [root]` — fail on generated drift, broken relative links, or invalid normalized-roadmap graph structure.
 - `agentic-repo upgrade [root]` — refresh managed generated files for the current installed kit.
 - `agentic-repo normalize-roadmap [root]` — emit repository inspection plus the semantic agent procedure for converting milestone-level planning into executable work.
 
@@ -98,7 +98,7 @@ Example configurations live under [`examples/`](./examples/).
 
 ## Generated vs semantic work
 
-Repository bootstrap is deterministic. Roadmap normalization is not: transforming “Milestone 2 — correctness fixes” into correct dependency-aware investigations requires reading repository reality and reasoning about unknowns. `normalize-roadmap` therefore emits a canonical semantic packet instead of making a fake deterministic rewrite.
+Repository bootstrap is deterministic. Roadmap normalization is not: transforming “Milestone 2 — correctness fixes” into correct dependency-aware investigations requires reading repository reality and reasoning about unknowns. `normalize-roadmap` therefore emits a canonical semantic packet instead of making a fake deterministic rewrite. After normalization, `check` verifies only stable mechanical graph invariants; it does not claim that an item is semantically ready or that a dependency is conceptually correct.
 
 The desired workflow is two separate PRs when starting a project:
 
