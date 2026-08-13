@@ -10,6 +10,7 @@ from .config import RepositoryConfig, load_config
 from .errors import AgenticRepoError
 from .paths import confined_repo_path, validate_output_path
 from .render import GENERATED_MARKER, render_generated_files
+from .roadmap import structured_roadmap_problems
 
 
 CONFIG_NAME = ".agentic-repo.toml"
@@ -251,7 +252,14 @@ def check(root: Path, config_path: Path) -> CheckResult:
             markdown_paths.append(path)
 
     if roadmap.is_file():
+        roadmap_text = roadmap.read_text(encoding="utf-8")
         markdown_paths.append(roadmap)
+        problems.extend(
+            structured_roadmap_problems(
+                roadmap_text,
+                path=str(roadmap.relative_to(root)),
+            )
+        )
     problems.extend(_markdown_link_problems(root, markdown_paths))
     return CheckResult(ok=not problems, problems=tuple(problems))
 
