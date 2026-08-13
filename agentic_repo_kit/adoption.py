@@ -242,6 +242,19 @@ def adoption_report(plan: AdoptionPlan) -> str:
     return json.dumps(plan.as_dict(), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _recheck_plan_inputs(root: Path, config_path: Path, plan: AdoptionPlan) -> None:
+    config_text = _read_text(config_path, label="adoption config")
+    if _digest_text(config_text) != plan.config_sha256:
+        raise AgenticRepoError("adoption config changed after planning; review a fresh plan")
+
+    for item in plan.inputs:
+        label = "configured roadmap" if item.kind == "roadmap" else "local input"
+        path = confined_repo_path(root, item.path, label=label)
+        text = _read_text(path, label=label)
+        if _digest_text(text) != item.sha256:
+            raise AgenticRepoError(f"adoption {item.kind} input changed after planning: {item.path}")
+
+
 def _atomic_replace_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.agentic-adopt-", dir=path.parent)
@@ -261,6 +274,7 @@ def apply_adoption(root: Path, config_path: Path, expected_plan_id: str) -> list
     if not _PLAN_ID.fullmatch(expected_plan_id):
         raise AgenticRepoError("adoption apply requires the exact 64-hex-character plan_id")
 
+    root = root.resolve()
     plan = build_adoption_plan(root, config_path)
     if plan.plan_id != expected_plan_id:
         raise AgenticRepoError(
@@ -270,6 +284,8 @@ def apply_adoption(root: Path, config_path: Path, expected_plan_id: str) -> list
     config = load_config(config_path)
     generated = render_generated_files(config, root)
     planned = {item.path: item for item in plan.files}
+
+    _recheck_plan_inputs(root, config_path, plan)
 
     for relative, prospective in generated.items():
         item = planned[relative]
