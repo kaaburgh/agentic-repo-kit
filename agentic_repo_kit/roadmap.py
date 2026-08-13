@@ -7,8 +7,11 @@ import re
 _ITEM_HEADING = re.compile(r"^(#{2,4})\s+([A-Za-z][A-Za-z0-9._-]*)\s+(?:—|--|-)\s+(.+?)\s*$")
 _ANY_HEADING = re.compile(r"^(#{1,6})\s+")
 _FIELD = re.compile(r"^- \*\*([^*]+):\*\*\s*(.*?)\s*$")
-_LINKED_DEP_ID = re.compile(r"^\[([A-Za-z][A-Za-z0-9._-]*)\]\([^)]*\)(?:\s+\([^)]*\))?$")
-_PLAIN_DEP_ID = re.compile(r"^([A-Za-z][A-Za-z0-9._-]*)(?:\s+\([^)]*\))?$")
+_ID = r"[A-Za-z][A-Za-z0-9._-]*"
+_LINKED_DEP_ID = re.compile(rf"^\[({_ID})\]\([^)]*\)(?:\s+\([^)]*\))?$")
+_CODE_DEP_ID = re.compile(rf"^`({_ID})`(?:\s+\([^)]*\))?$")
+_BOLD_DEP_ID = re.compile(rf"^\*\*({_ID})\*\*(?:\s+\([^)]*\))?$")
+_PLAIN_DEP_ID = re.compile(rf"^({_ID})(?:\s+\([^)]*\))?$")
 _NO_DEPENDENCIES = {"none", "n/a", "na", "—", "-"}
 
 
@@ -120,16 +123,14 @@ def _dependency_ids(raw: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
             malformed.append("<empty>")
             continue
 
-        if token.startswith("`") and token.endswith("`") and len(token) > 2:
-            token = token[1:-1].strip()
-        if token.startswith("**") and token.endswith("**") and len(token) > 4:
-            token = token[2:-2].strip()
-
-        linked = _LINKED_DEP_ID.match(token)
-        plain = _PLAIN_DEP_ID.match(token)
-        match = linked or plain
+        match = (
+            _LINKED_DEP_ID.match(token)
+            or _CODE_DEP_ID.match(token)
+            or _BOLD_DEP_ID.match(token)
+            or _PLAIN_DEP_ID.match(token)
+        )
         if not match:
-            malformed.append(part.strip())
+            malformed.append(token)
             continue
         dependencies.append(match.group(1))
     return tuple(dependencies), tuple(malformed)
