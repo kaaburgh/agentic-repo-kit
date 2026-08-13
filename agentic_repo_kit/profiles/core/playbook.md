@@ -18,3 +18,13 @@ If the selected item needs a tool/capability that the current environment lacks:
 4. If environment constraints block acquisition, continue independent work and package a precise operator handoff: capability/tool, version/platform, why required, attempts made, and exact failures.
 5. Do not infer `LOCAL ONLY` or project-level impossibility from one sandbox's acquisition failure.
 6. After resolution, preserve the working bootstrap/acquisition path or a useful negative result so the next agent does not repeat the same dead end.
+
+## Evidence-producing CI and regression triggers
+
+A regression workflow is part of the evidence chain, not merely a convenient command runner. If a job validates a parser, generated dataset, acquisition path, target-specific analyzer, patch locator, or other durable evidence, its trigger/filter set must cover every material repository input that can change that evidence: the entry-point script plus shared parsers/libraries, schemas, manifests, acquisition/configuration data, and other producer dependencies.
+
+Do not let a path-filter optimization create a false green by skipping the dedicated regression when one of its shared inputs changes. When the dependency surface is difficult to express safely, prefer a broader trigger over an incomplete narrow filter.
+
+Where reproducible inputs are available, run the repository's real entry point from a clean checkout instead of validating a hand-reproduced equivalent implementation. Synthetic tests remain valuable for edge cases, but they do not replace a clean-checkout end-to-end regression when the acceptance claim depends on the real producer/target/input chain.
+
+When a producer's serialized output semantics change, version or invalidate the affected derived evidence and ensure the regression exercises the new consumer/producer compatibility boundary rather than silently reusing stale artifacts.
