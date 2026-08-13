@@ -6,6 +6,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 
 from . import __version__
@@ -17,6 +18,7 @@ from .render import GENERATED_MARKER, render_generated_files
 
 
 ADOPTION_PLAN_FORMAT = 1
+_PLAN_ID = re.compile(r"^[0-9a-f]{64}$")
 
 
 @dataclass(frozen=True)
@@ -256,7 +258,7 @@ def _atomic_replace_text(path: Path, content: str) -> None:
 
 
 def apply_adoption(root: Path, config_path: Path, expected_plan_id: str) -> list[str]:
-    if not expected_plan_id or len(expected_plan_id) != 64:
+    if not _PLAN_ID.fullmatch(expected_plan_id):
         raise AgenticRepoError("adoption apply requires the exact 64-hex-character plan_id")
 
     plan = build_adoption_plan(root, config_path)
