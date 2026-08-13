@@ -9,7 +9,9 @@
     "docs/roadmap-authoring.md": "b0c6e61685d139253846abf5996c8c4b1b1afaef509670d2a1d8826823a708e4"
   },
   "kit_version": 1,
-  "profiles": ["core"],
+  "profiles": [
+    "core"
+  ],
   "project": {
     "kind": "developer-tool / repository-policy-compiler",
     "name": "agentic-repo-kit",
