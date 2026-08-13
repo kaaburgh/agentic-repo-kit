@@ -32,6 +32,20 @@ class RoadmapDogfoodVariantTests(unittest.TestCase):
         self.assertEqual((2, 2, 3), tuple(item.heading_level for item in items))
         self.assertEqual((), structured_roadmap_problems(text))
 
+    def test_fieldless_section_heading_is_not_an_item(self) -> None:
+        text = '''\
+## M0 — Milestone section
+
+> Section outcome only.
+
+### A1 — Real item
+- **Status:** Open
+- **Depends on:** none
+'''
+        items = parse_structured_items(text)
+        self.assertEqual(("A1",), tuple(item.item_id for item in items))
+        self.assertEqual((), structured_roadmap_problems(text))
+
     def test_same_or_higher_heading_closes_current_item(self) -> None:
         text = '''\
 ### R1 — First
