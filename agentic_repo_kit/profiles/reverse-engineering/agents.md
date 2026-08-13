@@ -6,7 +6,7 @@ Keep evidence classes distinct: `static`, `runtime`, `synthetic`, `reported`, an
 
 Validation evidence must be independent of the transformation or mapping being validated. Do not validate a parser-derived address, mapping, decode, or identity by feeding values produced through that same derivation back into it. Prefer an independently pinned relationship, a second implementation/tool, raw-byte observation, runtime observation, or a structural invariant that can fail independently. If only internal consistency is checked, describe it as such rather than as independent validation.
 
-Machine-readable derived RE artifacts must carry enough provenance to reject stale or semantically incompatible evidence: at minimum a schema/version identifier, input target identity or hashes, and producer/tool or analysis-model identity where those can change interpretation. Consumers should fail closed on missing or incompatible provenance instead of silently accepting legacy output.
+Machine-readable derived RE artifacts must carry enough provenance to reject stale or semantically incompatible evidence: at minimum a schema/version identifier, identities or hashes for all material inputs that affect interpretation, and producer/tool or analysis-model identity where those can change semantics. Consumers should fail closed on missing or incompatible provenance instead of silently accepting legacy output.
 
 Preserve ambiguity in both machine output and prose. If uniqueness is not established, emit an explicit ambiguous/unmapped result rather than selecting a convenient candidate by ordering, nearest address, fuzzy score, or other arbitrary tie-break. Heuristic relationships may rank investigation leads but remain hypotheses until stronger evidence establishes identity.
 
