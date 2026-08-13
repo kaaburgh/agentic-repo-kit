@@ -92,6 +92,8 @@ def _load_previous_generated(root: Path) -> dict[str, str]:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise AgenticRepoError(f"cannot read previous generated manifest: {LOCK_NAME}") from exc
+    if not isinstance(raw, dict):
+        raise AgenticRepoError(f"invalid previous generated manifest: {LOCK_NAME}")
     generated = raw.get("generated")
     if not isinstance(generated, dict) or not all(
         isinstance(relative, str) and isinstance(digest, str) for relative, digest in generated.items()
