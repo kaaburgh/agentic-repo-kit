@@ -126,6 +126,28 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** `agentic_repo_kit/profiles/reverse-engineering/`, `agentic_repo_kit/profiles/native-binary-patching/`, experiment template, tests, package version
 - **Estimated scope:** Small/Medium
 
+### ARK7 — Add reproducible target-experiment contract
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Reverse engineering / runtime evidence
+- **Depends on:** ARK6
+- **Problem / question:** Which runtime-harness lessons from Ascendancy CF3/CF4 are generic enough to prevent a target experiment from passing on mere liveness, incidental visual change, harness success, or mutation of the supplied evidence tree?
+- **Known evidence:** Ascendancy runtime dogfood separated debugger/input/capture capability from exact-target behavior, rejected mode-then-crash and generic frame-change false positives, added semantic expected-screen oracles and bounded execution, and kept maintainer-supplied proprietary runtime inputs immutable while emitting sanitized detached evidence.
+- **Implementation evidence:** This branch adds semantic target-run oracles, explicit termination/runtime bounds, detached run provenance, and capability-vs-target evidence separation to `reverse-engineering`; adds immutable verified input, isolated working-copy, sanitization, and no-payload run-record rules plus playbook/PR fragments to `proprietary-target`; and makes graphics acceptance oracles checkpoint/state-specific rather than accepting generic frame activity. Focused generated-contract tests cover the combined profile surface. Tool/package version is bumped to 0.1.3 while `kit_version = 1` remains unchanged.
+- **Validation / acceptance:**
+  - target-run success/failure is defined by an oracle that directly distinguishes the claimed semantic state/behavior rather than generic activity;
+  - waits/retries/actions/captures/log volume/overall runtime and termination semantics are bounded where relevant;
+  - synthetic/redistributable controls prove harness capability only and cannot be promoted to exact-target runtime claims;
+  - proprietary target/fixture inputs are identity-verified and kept immutable, with writable execution isolated to a copy/overlay/work directory;
+  - detached run records preserve target/fixture, scenario/config, harness/tool, material environment, termination, oracle, and artifact provenance without redistributing proprietary payloads;
+  - artifacts sanitize private paths, credentials, user identifiers, and unrelated host data;
+  - graphics validation requires checkpoint/state-specific evidence where global frame/hash deltas could produce false positives;
+  - focused profile-generation tests and the full unit suite pass;
+  - `python -m agentic_repo_kit check .` passes and package patch version advances without a format/schema break.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/reverse-engineering/`, `agentic_repo_kit/profiles/proprietary-target/`, `agentic_repo_kit/profiles/graphics/`, tests, package version
+- **Estimated scope:** Small/Medium
+
 ## Later
 
 - Support safe adoption of repositories that already have hand-written `AGENTS.md`/PR templates instead of requiring an explicit migration step.
