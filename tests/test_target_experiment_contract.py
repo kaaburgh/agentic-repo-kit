@@ -67,7 +67,7 @@ class TargetExperimentContractTests(unittest.TestCase):
         pr = (root / ".github/pull_request_template.md").read_text(encoding="utf-8")
 
         self.assertIn("immutable evidence inputs", agents)
-        self.assertIn("isolated verified working copy", agents)
+        self.assertIn("verified copy, isolated work directory, overlay", agents)
         self.assertIn("Sanitize private host paths", agents)
         self.assertIn("leave the supplied source evidence untouched", playbook)
         self.assertIn("without embedding proprietary payloads", pr)
