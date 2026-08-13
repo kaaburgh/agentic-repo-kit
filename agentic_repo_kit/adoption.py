@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import tempfile
 
 from . import __version__
@@ -149,11 +150,23 @@ def build_adoption_plan(root: Path, config_path: Path) -> AdoptionPlan:
     generated = render_generated_files(config, root)
 
     local_specs = _local_inputs(config)
-    local_paths = {path for _, path in local_specs}
-    overlap = sorted(local_paths & set(generated))
-    if overlap:
+    local_by_path: dict[Path, list[str]] = {}
+    for _, relative in local_specs:
+        local_path = confined_repo_path(root, relative, label="local input").resolve(strict=False)
+        local_by_path.setdefault(local_path, []).append(relative)
+
+    generated_by_path = {
+        validate_output_path(root, relative).resolve(strict=False): relative
+        for relative in generated
+    }
+    overlap_paths = sorted(set(local_by_path) & set(generated_by_path), key=str)
+    if overlap_paths:
+        details = []
+        for path in overlap_paths:
+            local_names = ", ".join(repr(name) for name in local_by_path[path])
+            details.append(f"{local_names} aliases generated output {generated_by_path[path]!r}")
         raise AgenticRepoError(
-            "local input path overlaps a generated managed output: " + ", ".join(overlap)
+            "local input path overlaps a generated managed output: " + "; ".join(details)
         )
 
     roadmap = confined_repo_path(root, config.project.roadmap, label="project.roadmap")
@@ -257,6 +270,7 @@ def _recheck_plan_inputs(root: Path, config_path: Path, plan: AdoptionPlan) -> N
 
 def _atomic_replace_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    target_mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o644
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.agentic-adopt-", dir=path.parent)
     temporary_path = Path(temporary)
     try:
@@ -264,6 +278,7 @@ def _atomic_replace_text(path: Path, content: str) -> None:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
+        os.chmod(temporary_path, target_mode)
         os.replace(temporary_path, path)
     finally:
         if temporary_path.exists():
