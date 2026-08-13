@@ -14,7 +14,7 @@ Before promoting a derived result to durable evidence, ask what could make the c
 
 A self-round-trip or same-model consistency test can still be useful, but label it as internal consistency rather than independent corroboration.
 
-Treat serialized RE output as evidence with a compatibility boundary. Include a schema/version, exact input identity or hashes, producer/tool version, and any parser/layout/normalization or analysis-model identifier needed to determine whether the semantics are still current. Downstream consumers should reject missing, legacy, or incompatible provenance instead of silently mixing evidence from different analysis models.
+Treat serialized RE output as evidence with a compatibility boundary. Include a schema/version, identities or hashes for every material target/reference/configuration input that can affect interpretation, producer/tool version, and any parser/layout/normalization or analysis-model identifier needed to determine whether the semantics are still current. Downstream consumers should reject missing, legacy, or incompatible provenance instead of silently mixing evidence from different analysis models.
 
 When matching or correlating candidates, make uniqueness an invariant. Zero matches, multiple equally valid matches, duplicate normalized signatures, or otherwise unresolved ties should remain explicit `unmapped`/`ambiguous` outcomes. Do not turn deterministic list order or a fuzzy best score into an identity claim. Keep heuristic alignments in human notes as investigation leads unless independently corroborated.
 
