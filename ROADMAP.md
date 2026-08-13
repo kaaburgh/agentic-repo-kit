@@ -106,16 +106,17 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK6 — Add reverse-engineering evidence integrity contract
 
-- **Status:** Implemented, validation incomplete
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Reverse engineering / evidence integrity
 - **Depends on:** ARK5
 - **Problem / question:** Which Ascendancy review lessons about independent validation, derived analysis artifacts, ambiguity, and ABI inference are generic enough to become reusable reverse-engineering policy?
 - **Known evidence:** `ascendancy-auto-management` CF2/T2/RE1/RE2 reviews exposed four recurring failure modes: circular validation of a derived mapping, stale or semantically incompatible machine artifacts, arbitrary identity assignment under duplicate/ambiguous matches, and argument interpretation based on an assumed compiler ABI rather than observed call behavior.
-- **Implementation evidence:** This branch strengthens the `reverse-engineering` profile and experiment template with independent-oracle rules, schema/input/producer provenance for machine-readable evidence, fail-closed stale-data handling, explicit ambiguous/unmapped outcomes, and observed ABI evidence. `native-binary-patching` receives the corresponding hook/trampoline ABI boundary. Focused generated-contract tests cover each rule. Tool/package version is bumped to 0.1.2 while `kit_version = 1` remains unchanged.
+- **Implementation evidence:** The ARK6 branch strengthens the `reverse-engineering` profile and experiment template with independent-oracle rules, all-material-input/schema/producer provenance for machine-readable evidence, fail-closed stale-data handling, explicit ambiguous/unmapped outcomes, and observed ABI evidence. `native-binary-patching` receives the corresponding hook/trampoline ABI boundary. Focused generated-contract tests cover each rule. Self-review widened provenance from a single target input to all material inputs; automated review independently found the stale ARK4 `0.1.1` test assertion, which was replaced with the invariant `lock.tool_version == package __version__`. Tool/package version is 0.1.2 while `kit_version = 1` remains unchanged.
+- **Validation evidence:** GitHub Actions CI run `31676500815` on review-corrected head `e3e6a96623e179048df6c4877a874d7de522c226` passed editable install, the full unit suite, and `python -m agentic_repo_kit check .`. The PR diff was reviewed after opening; no target-specific policy or ARK7–ARK9 implementation was introduced.
 - **Validation / acceptance:**
   - generated RE policy rejects circular self-validation as independent evidence and distinguishes internal consistency from independent corroboration;
-  - derived machine-readable RE artifacts carry schema, input, and producer/analysis-model provenance sufficient to reject stale or incompatible evidence;
+  - derived machine-readable RE artifacts carry schema, all material input identities/hashes, and producer/analysis-model provenance sufficient to reject stale or incompatible evidence;
   - ambiguous/duplicate matches remain machine-visible as ambiguous or unmapped rather than being resolved by arbitrary ordering or fuzzy tie-breaks;
   - ABI/calling-convention claims used for argument interpretation or hook design require direct target evidence when practical;
   - reproducible experiment guidance includes setup/tool versions, differentiating outcomes, artifact names, evidence/confidence, and the next question;
