@@ -12,4 +12,8 @@ Preserve ambiguity in both machine output and prose. If uniqueness is not establ
 
 Treat ABI and calling convention as target evidence, not a compiler-default assumption. Before interpreting arguments across a closed-target call boundary or designing a hook/trampoline around it, establish the relevant register/stack behavior from real call sites, callee entry/exit behavior, known-arity calls, or equivalent direct evidence when practical.
 
+For runtime experiments, define success with an oracle that directly distinguishes the claimed target state or behavior. Liveness, a changed frame/hash, non-empty output, or a generic timing delta proves only that something happened unless that is exactly the claim being tested. Declare termination/liveness expectations and bound waits, retries, logging, captures, and total runtime so a hung or noisy run fails closed rather than producing accidental evidence.
+
+Keep harness capability separate from target-specific evidence. A synthetic fixture, redistributable control target, or mock can establish that input injection, breakpoint control, capture, decoding, or artifact generation works; it does not establish the corresponding behavior on the exact target until that target is run under the stated scenario and oracle.
+
 Substantial findings belong under `docs/re/`; reproducible experiments and negative results belong under `docs/experiments/`. Save signatures, structures, call sequences, scripts, parsers, and other reusable RE outputs in the repository when licensing permits.
