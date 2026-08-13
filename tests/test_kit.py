@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import contextlib
+from hashlib import sha256
 import io
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -119,6 +121,41 @@ class KitTests(unittest.TestCase):
             upgrade(root, root / ".agentic-repo.toml")
 
         self.assertEqual("hand-written replacement\n", stale.read_text(encoding="utf-8"))
+
+    def test_forged_manifest_cannot_delete_arbitrary_repository_file(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        bootstrap(root, root / ".agentic-repo.toml")
+
+        config_path = root / ".agentic-repo.toml"
+        config_text = config_path.read_text(encoding="utf-8")
+        lock_path = root / ".agentic-repo.lock.json"
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock["generated"][".agentic-repo.toml"] = sha256(config_text.encode("utf-8")).hexdigest()
+        lock_path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(AgenticRepoError, "untrusted path"):
+            upgrade(root, config_path)
+
+        self.assertEqual(config_text, config_path.read_text(encoding="utf-8"))
+
+    def test_forged_manifest_hash_cannot_authorize_unmarked_overwrite(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        bootstrap(root, root / ".agentic-repo.toml")
+
+        agents = root / "AGENTS.md"
+        replacement = "hand-written replacement\n"
+        agents.write_text(replacement, encoding="utf-8")
+        lock_path = root / ".agentic-repo.lock.json"
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock["generated"]["AGENTS.md"] = sha256(replacement.encode("utf-8")).hexdigest()
+        lock_path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(AgenticRepoError, "refusing to overwrite unmanaged"):
+            upgrade(root, root / ".agentic-repo.toml")
+
+        self.assertEqual(replacement, agents.read_text(encoding="utf-8"))
 
     def test_generated_output_rejects_symlinked_parent(self) -> None:
         temp, root = self.make_repo()
