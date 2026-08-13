@@ -227,15 +227,14 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK11 — Safely adopt an existing hand-written repository contract
 
-- **Status:** Implemented, validation incomplete
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Core tooling / migration
 - **Depends on:** ARK10
 - **Problem / question:** How can a mature repository with hand-written `AGENTS.md`, PR template, playbook, or related policy transfer selected files to kit ownership without `bootstrap --force` silently discarding project-specific rules?
 - **Known evidence:** Ascendancy has a mature hand-written contract whose generic parts now substantially map to `core + reverse-engineering + blind-research + proprietary-target + native-binary-patching`, while exact blind gate/adoption baseline and other project facts must remain local. Current `bootstrap` correctly refuses conflicting unmanaged files but offers no first-class migration packet/acceptance transaction.
 - **Implementation evidence:** The ARK11 branch adds `agentic-repo adopt` with non-destructive JSON plan mode and explicit `--apply PLAN_ID`. The plan binds tool version, config, roadmap/local-input identities, existing managed-surface hashes/actions, and prospective generated hashes; replacements expose unified diffs and required operator decisions. Apply rejects stale/malformed plans, rechecks reviewed inputs and current/prospective hashes immediately before writes, atomically replaces files, preserves existing POSIX modes/uses readable modes for new files, writes the ownership lock last, and rolls back prior writes on failure. Canonical aliases of generated outputs are rejected as local inputs; plan output cannot overwrite adoption inputs, managed targets, or any existing file. Existing locks route to `upgrade`. Documentation lives in `docs/adoption.md`; tool/package version is 0.1.7 with `kit_version = 1` unchanged.
-- **Validation evidence:** Initial PR CI run `31711751625` / #48 passed 68 tests and self-check. Self-review added an immediate pre-write recheck for reviewed roadmap/local inputs. Codex review identified canonical-path aliasing, destructive plan-output collisions, POSIX `0600` replacement modes, and the stale roadmap status; the three code-path defects were corrected with focused regressions. Review-corrected CI run `31712469402` / #53 passed all 72 unit tests and `python -m agentic_repo_kit check .`. The Ascendancy-shaped fixture proves that a hand-written contract can transfer to `core + reverse-engineering + blind-research + proprietary-target + native-binary-patching` while a project-local M1 blind gate remains outside managed ownership and is composed into the generated contract.
-- **Remaining validation:** Merge must publish `v0.1.7` through the ARK10 release workflow and the release tag/assets must be verified before ARK11 can be marked `Completed and verified`.
+- **Validation evidence:** Initial PR CI run `31711751625` / #48 passed 68 tests and self-check. Self-review added an immediate pre-write recheck for reviewed roadmap/local inputs. Codex review identified canonical-path aliasing, destructive plan-output collisions, POSIX `0600` replacement modes, and the stale roadmap status; the three code-path defects were corrected with focused regressions. Review-corrected CI run `31712469402` / #53 passed all 72 unit tests and `python -m agentic_repo_kit check .`. Final pre-merge CI run `31712861597` / #54 also passed. PR #10 rebase-merged as `1e708b795e5cc9dd1ea1efcc79f957638ad695cf`; post-merge CI run `31713011698` / #55 succeeded. Release workflow run `31713011752` / #2 succeeded and published `v0.1.7` at that exact commit with `agentic-repo-kit-0.1.7.tar.gz`, `agentic-repo-kit-0.1.7.zip`, and `SHA256SUMS` assets. The Ascendancy-shaped fixture proves that a hand-written contract can transfer to `core + reverse-engineering + blind-research + proprietary-target + native-binary-patching` while a project-local M1 blind gate remains outside managed ownership and is composed into the generated contract.
 - **Validation / acceptance:**
   - adoption has a non-destructive default/plan mode that never modifies the repository unless an explicit new `--output` artifact path is requested;
   - the plan identifies existing conflicting managed paths and whether prospective output differs;
@@ -246,7 +245,7 @@ This is the live backlog for turning successful repository-agent conventions int
   - after successful adoption, ordinary `agentic-repo check` and later `upgrade` own only the declared managed files;
   - focused synthetic migration tests include an Ascendancy-shaped fixture with hand-written `AGENTS.md`/PR policy plus local blind gate;
   - full unit tests and self-check pass; package version advances and the release workflow publishes that new version.
-- **Artifacts / docs:** `agentic_repo_kit/adoption.py`, adoption CLI, `docs/adoption.md`, safe-adoption tests, Ascendancy-shaped fixture, package version
+- **Artifacts / docs:** `agentic_repo_kit/adoption.py`, adoption CLI, `docs/adoption.md`, safe-adoption tests, Ascendancy-shaped fixture, package version, GitHub Release `v0.1.7`
 - **Estimated scope:** Medium
 
 ## Later
