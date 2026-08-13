@@ -19,3 +19,17 @@ Treat serialized RE output as evidence with a compatibility boundary. Include a 
 When matching or correlating candidates, make uniqueness an invariant. Zero matches, multiple equally valid matches, duplicate normalized signatures, or otherwise unresolved ties should remain explicit `unmapped`/`ambiguous` outcomes. Do not turn deterministic list order or a fuzzy best score into an identity claim. Keep heuristic alignments in human notes as investigation leads unless independently corroborated.
 
 Before assigning argument semantics at a closed-target call boundary, recover the relevant ABI from observed behavior. Useful evidence includes a known-arity real call, caller cleanup, callee stack reads, register preparation/consumption, preserved registers, return behavior, and agreement across multiple sites. Compiler/toolchain fingerprints may guide the hypothesis but do not by themselves establish the calling convention for a specific internal boundary.
+
+### Target-run evidence contract
+
+A reusable target-run harness should make the experiment auditable without relying on the operator remembering what happened. For each scenario:
+
+1. Pin the exact target/build plus the runtime/environment facts material to the claim.
+2. Pin or hash the scenario/action/configuration input and identify the harness/tool version used to execute it.
+3. State the success and failure oracles before the run. Prefer an oracle for the intended semantic state, output, resource, event, memory transition, or other claimed behavior rather than accepting generic activity such as process liveness, a changed frame, or a different hash.
+4. Declare termination semantics: expected exit codes, expected timeout/liveness behavior, or another bounded completion condition. Bound waits, retries, action counts, captures, log volume, and total runtime as appropriate.
+5. Emit a detached machine-readable run record containing target/environment identity, scenario/config/harness provenance, termination result, oracle results, and names/digests of bounded artifacts. Preserve failure evidence when safe so a false positive or harness failure can be diagnosed.
+
+Use controls to validate the harness separately from the target hypothesis. A synthetic/minimal fixture or redistributable control can prove that the debugger, input driver, capture path, decoder, breakpoint mechanism, or artifact writer works in the environment. Record that as capability evidence. Do not convert it into a target-specific runtime claim until the exact target executes the bounded scenario and satisfies the target oracle.
+
+When a runtime failure could mean either "the harness is broken" or "the target hypothesis is false", choose a control or independent probe that separates those outcomes before updating the target model.
