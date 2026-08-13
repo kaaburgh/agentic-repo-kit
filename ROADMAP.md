@@ -59,13 +59,13 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK4 — Add generic operator-handoff policy
 
-- **Status:** Implemented, validation incomplete
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Core policy / constrained environments
 - **Depends on:** ARK3
 - **Problem / question:** How should every generated contract behave when a required tool or capability cannot be acquired in the current agent environment because of sandbox, network/egress, package-manager, permission, platform, or similar constraints?
 - **Known evidence:** BB dogfood exposed that the v0.1.0 `core` contract has cloud/gated execution guidance but no generic rule that failure to acquire a tool in one sandbox is not evidence that the capability is unavailable to the project. `ascendancy-auto-management` already carries a project-local operator-handoff rule that demonstrates the desired behavior.
-- **Implementation evidence:** The ARK4 branch adds the generic rule to `core`, aligns the execution playbook and roadmap-authoring guidance, bumps tool/package version to 0.1.1 without changing `kit_version = 1`, regenerates this repository's managed core contract, and adds focused bootstrap/upgrade regression tests. Focused tests and a local generated-contract self-check passed; full repository CI remains the verification gate.
+- **Implementation evidence:** The ARK4 branch adds the generic rule to `core`, aligns the execution playbook and roadmap-authoring guidance, bumps tool/package version to 0.1.1 without changing `kit_version = 1`, regenerates this repository's managed core contract, and adds focused bootstrap/upgrade regression tests. GitHub Actions CI run #11 passed editable install, all 26 unit tests, and `python -m agentic_repo_kit check .`; the generated dogfood contract is consistent.
 - **Proposed direction after evidence:** Put the generic semantics in `core`, keep project-specific evidence/licensing restrictions in local/domain policy, and align roadmap execution guidance so a failed acquisition alone cannot justify `LOCAL ONLY`.
 - **Validation / acceptance:**
   - generated `AGENTS.md` says a missing tool in one environment is not evidence that the project capability or task is impossible;
