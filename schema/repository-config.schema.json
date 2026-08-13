@@ -25,9 +25,7 @@
     "workflow": {
       "type": "object",
       "properties": {
-        "cloud_first": {"type": "boolean", "default": true},
-        "roadmap_driven": {"type": "boolean", "default": true},
-        "one_roadmap_item_per_pr": {"type": "boolean", "default": true}
+        "cloud_first": {"type": "boolean", "default": true}
       },
       "additionalProperties": false
     },

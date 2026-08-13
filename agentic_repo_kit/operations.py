@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
 import json
 from importlib.resources import files
 from pathlib import Path
@@ -8,16 +9,31 @@ import re
 
 from .config import RepositoryConfig, load_config
 from .errors import AgenticRepoError
+from .paths import confined_repo_path, validate_output_path
 from .render import GENERATED_MARKER, render_generated_files
 
 
 CONFIG_NAME = ".agentic-repo.toml"
+LOCK_NAME = ".agentic-repo.lock.json"
 
 
 @dataclass(frozen=True)
 class CheckResult:
     ok: bool
     problems: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class _WritePlan:
+    relative: str
+    path: Path
+    content: str
+
+
+@dataclass(frozen=True)
+class _DeletePlan:
+    relative: str
+    path: Path
 
 
 def inspect_repository(root: Path) -> dict:
@@ -46,23 +62,94 @@ def inspect_repository(root: Path) -> dict:
     return {"root": str(root.resolve()), "signals": known, "extensions": dict(sorted(extensions.items()))}
 
 
-def _write_generated(root: Path, generated: dict[str, str], *, force: bool, upgrade: bool) -> list[str]:
-    changed: list[str] = []
+def _content_hash(content: str) -> str:
+    return sha256(content.encode("utf-8")).hexdigest()
+
+
+def _load_previous_generated(root: Path) -> dict[str, str]:
+    path = validate_output_path(root, LOCK_NAME)
+    if not path.exists():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AgenticRepoError(f"cannot read previous generated manifest: {LOCK_NAME}") from exc
+    generated = raw.get("generated")
+    if not isinstance(generated, dict) or not all(
+        isinstance(relative, str) and isinstance(digest, str) for relative, digest in generated.items()
+    ):
+        raise AgenticRepoError(f"invalid previous generated manifest: {LOCK_NAME}")
+    return dict(generated)
+
+
+def _is_managed(relative: str, current: str, previous_generated: dict[str, str]) -> bool:
+    if relative == LOCK_NAME or GENERATED_MARKER in current:
+        return True
+    previous_hash = previous_generated.get(relative)
+    return previous_hash is not None and _content_hash(current) == previous_hash
+
+
+def _preflight_generated(
+    root: Path,
+    generated: dict[str, str],
+    *,
+    force: bool,
+    upgrade: bool,
+    previous_generated: dict[str, str],
+) -> tuple[list[_WritePlan], list[_DeletePlan]]:
+    writes: list[_WritePlan] = []
     for relative, content in generated.items():
-        path = root / relative
+        path = validate_output_path(root, relative)
         if path.exists():
             current = path.read_text(encoding="utf-8")
             if current == content:
                 continue
-            managed = relative == ".agentic-repo.lock.json" or GENERATED_MARKER in current
+            managed = _is_managed(relative, current, previous_generated)
             if not force and not (upgrade and managed):
                 raise AgenticRepoError(
                     f"refusing to overwrite unmanaged or drifted file: {relative}; "
                     "move project-specific text to [local] inputs or pass --force intentionally"
                 )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        changed.append(relative)
+        writes.append(_WritePlan(relative=relative, path=path, content=content))
+
+    deletes: list[_DeletePlan] = []
+    if upgrade:
+        obsolete = sorted(set(previous_generated) - set(generated))
+        for relative in obsolete:
+            path = validate_output_path(root, relative)
+            if not path.exists():
+                continue
+            current = path.read_text(encoding="utf-8")
+            if not _is_managed(relative, current, previous_generated):
+                raise AgenticRepoError(f"refusing to remove unmanaged obsolete generated file: {relative}")
+            deletes.append(_DeletePlan(relative=relative, path=path))
+    return writes, deletes
+
+
+def _write_generated(
+    root: Path,
+    generated: dict[str, str],
+    *,
+    force: bool,
+    upgrade: bool,
+    previous_generated: dict[str, str] | None = None,
+) -> list[str]:
+    writes, deletes = _preflight_generated(
+        root,
+        generated,
+        force=force,
+        upgrade=upgrade,
+        previous_generated=previous_generated or {},
+    )
+
+    changed: list[str] = []
+    for plan in deletes:
+        plan.path.unlink()
+        changed.append(plan.relative)
+    for plan in writes:
+        plan.path.parent.mkdir(parents=True, exist_ok=True)
+        plan.path.write_text(plan.content, encoding="utf-8")
+        changed.append(plan.relative)
     return changed
 
 
@@ -74,8 +161,15 @@ def bootstrap(root: Path, config_path: Path, *, force: bool = False) -> list[str
 
 def upgrade(root: Path, config_path: Path) -> list[str]:
     config = load_config(config_path)
+    previous_generated = _load_previous_generated(root)
     generated = render_generated_files(config, root)
-    return _write_generated(root, generated, force=False, upgrade=True)
+    return _write_generated(
+        root,
+        generated,
+        force=False,
+        upgrade=True,
+        previous_generated=previous_generated,
+    )
 
 
 def _markdown_link_problems(root: Path, paths: list[Path]) -> list[str]:
@@ -101,14 +195,26 @@ def _markdown_link_problems(root: Path, paths: list[Path]) -> list[str]:
 def check(root: Path, config_path: Path) -> CheckResult:
     config = load_config(config_path)
     problems: list[str] = []
-    roadmap = root / config.project.roadmap
+    try:
+        roadmap = confined_repo_path(root, config.project.roadmap, label="project.roadmap")
+    except AgenticRepoError as exc:
+        return CheckResult(ok=False, problems=(str(exc),))
     if not roadmap.is_file():
         problems.append(f"roadmap not found: {config.project.roadmap}")
 
-    expected = render_generated_files(config, root)
+    try:
+        expected = render_generated_files(config, root)
+    except AgenticRepoError as exc:
+        problems.append(str(exc))
+        return CheckResult(ok=False, problems=tuple(problems))
+
     markdown_paths: list[Path] = []
     for relative, content in expected.items():
-        path = root / relative
+        try:
+            path = validate_output_path(root, relative)
+        except AgenticRepoError as exc:
+            problems.append(str(exc))
+            continue
         if not path.exists():
             problems.append(f"generated file missing: {relative}")
             continue
