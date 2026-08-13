@@ -1,0 +1,12 @@
+kit_version = 1
+profiles = ["core"]
+
+[project]
+name = "agentic-repo-kit"
+kind = "developer-tool / repository-policy-compiler"
+roadmap = "ROADMAP.md"
+
+[workflow]
+cloud_first = true
+roadmap_driven = true
+one_roadmap_item_per_pr = true

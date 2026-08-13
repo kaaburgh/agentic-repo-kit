@@ -1,1 +1,120 @@
 # agentic-repo-kit
+
+`agentic-repo-kit` is a versioned repository policy compiler for agent-driven engineering projects. It extracts reusable process from successful repositories without turning one project's `AGENTS.md` into a universal template.
+
+The core model has three layers:
+
+1. **generic core** — source-of-truth precedence, live-roadmap discipline, bounded PR scope, honest validation, durable decisions;
+2. **domain profiles** — reverse engineering, proprietary targets, native binary patching, emulator correctness, graphics/GPU work, upstream-first development;
+3. **project-specific inputs** — product facts, local policy fragments, roadmap, build/test/install commands and target-specific evidence that stay in the target repository.
+
+Generated target repositories remain self-contained: agents read local `AGENTS.md` and docs, not this repository at runtime.
+
+## Status
+
+The first MVP is intentionally small and dependency-free at runtime. It implements deterministic repository inspection/rendering/validation plus a semantic roadmap-normalization packet intended to be executed by a capable coding agent. It is not an LLM framework and does not pretend to mechanically validate whether a reverse-engineering hypothesis is true.
+
+See [`docs/design.md`](./docs/design.md) for the architecture boundary, [`docs/profile-authoring.md`](./docs/profile-authoring.md) for extending profiles, and [`ROADMAP.md`](./ROADMAP.md) for dogfood and follow-up work.
+
+## Install and run from a checkout
+
+Requires Python 3.11+.
+
+```bash
+python -m pip install -e .
+agentic-repo profiles
+agentic-repo inspect /path/to/repo
+```
+
+A target repository declares its contract in `.agentic-repo.toml`:
+
+```toml
+kit_version = 1
+profiles = [
+  "core",
+  "reverse-engineering",
+  "proprietary-target",
+  "emulator",
+  "graphics",
+  "upstream-first",
+]
+
+[project]
+name = "Bloodborne on shadPS4 correctness + instrumentation"
+kind = "emulator correctness / graphics instrumentation"
+roadmap = "ROADMAP.md"
+
+[workflow]
+cloud_first = true
+roadmap_driven = true
+one_roadmap_item_per_pr = true
+```
+
+Then:
+
+```bash
+agentic-repo inspect .
+agentic-repo bootstrap .
+agentic-repo check .
+agentic-repo normalize-roadmap . > /tmp/roadmap-normalization.md
+```
+
+`bootstrap` refuses to overwrite an existing differing file unless `--force` is explicit. This makes initial adoption fail closed instead of silently replacing a repository's hand-written policy.
+
+`upgrade` re-renders missing files and files carrying the generated marker; it refuses to overwrite an unmanaged conflicting file. Project-specific additions should live in explicit local fragment files configured under `[local]` rather than edits to generated files:
+
+```toml
+[local]
+policy_files = ["docs/agent-policy.local.md"]
+playbook_files = ["docs/agent-playbook.local.md"]
+pr_files = ["docs/pr-policy.local.md"]
+```
+
+The lock file records tool/config/profile provenance and SHA-256 hashes for generated files. `check` re-renders expected content, detects drift/missing outputs, confirms the configured roadmap exists, and checks relative Markdown links in the generated contract and roadmap.
+
+## Commands
+
+- `agentic-repo inspect [root]` — report repository signals without changing files.
+- `agentic-repo profiles` — list built-in profiles.
+- `agentic-repo bootstrap [root]` — generate the self-contained repository contract and lock.
+- `agentic-repo check [root]` — fail if the generated contract drifted or has broken relative links.
+- `agentic-repo upgrade [root]` — refresh managed generated files for the current installed kit.
+- `agentic-repo normalize-roadmap [root]` — emit repository inspection plus the semantic agent procedure for converting milestone-level planning into executable work.
+
+## Built-in profiles
+
+- `core`
+- `reverse-engineering`
+- `proprietary-target`
+- `native-binary-patching`
+- `emulator`
+- `graphics`
+- `upstream-first`
+
+Profiles are intentionally orthogonal. Ascendancy-like native patching should not receive emulator policy, and shadPS4 correctness work should not receive `DllMain`/machine-code patch rules simply because another RE project needed them.
+
+Example configurations live under [`examples/`](./examples/).
+
+## Generated vs semantic work
+
+Repository bootstrap is deterministic. Roadmap normalization is not: transforming “Milestone 2 — correctness fixes” into correct dependency-aware investigations requires reading repository reality and reasoning about unknowns. `normalize-roadmap` therefore emits a canonical semantic packet instead of making a fake deterministic rewrite.
+
+The desired workflow is two separate PRs when starting a project:
+
+```text
+existing repository
+  -> bootstrap process contract
+  -> PR A
+  -> semantic roadmap normalization
+  -> PR B
+  -> normal one-roadmap-item-per-PR development
+```
+
+## Development
+
+```bash
+python -m unittest discover -s tests -v
+python -m agentic_repo_kit check .
+```
+
+The repository dogfoods the generated `core` contract. Change templates/profiles/code first, then run `python -m agentic_repo_kit upgrade .` and commit the generated reconciliation in the same PR.

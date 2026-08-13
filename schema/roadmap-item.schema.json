@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kaaburgh.github.io/agentic-repo-kit/roadmap-item.schema.json",
+  "title": "Conceptual executable roadmap item",
+  "description": "A machine-readable reference model for the fields expected in an agent-sized Markdown roadmap item.",
+  "type": "object",
+  "required": ["id", "status", "problem", "acceptance"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "minLength": 1},
+    "priority": {"enum": ["Critical", "High", "Medium", "Low"]},
+    "category": {"type": "string"},
+    "depends_on": {"type": "array", "items": {"type": "string"}},
+    "problem": {"type": "string", "minLength": 1},
+    "known_evidence": {"type": "array", "items": {"type": "string"}},
+    "hypotheses": {"type": "array", "items": {"type": "string"}},
+    "next_experiment": {"type": "string"},
+    "expected_information_gain": {"type": "string"},
+    "acceptance": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "execution": {"enum": ["CLOUD", "CLOUD RESEARCH", "GATED", "LOCAL ONLY"]}
+  },
+  "additionalProperties": true
+}
