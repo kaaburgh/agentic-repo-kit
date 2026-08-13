@@ -22,9 +22,11 @@ Roadmap normalization is semantic. The tool does not claim it can deterministica
 
 Generated files carry a marker. Direct project customization belongs in `[local]` fragment files so a later `upgrade` can re-render policy without losing local rules.
 
-`bootstrap` refuses any differing existing output by default. `--force` is an explicit migration escape hatch. `upgrade` is narrower: it may replace only files carrying the generated marker (plus the lock file) and may create missing generated files. An unmanaged conflict fails closed.
+`bootstrap` refuses any differing existing output by default. `--force` is an explicit migration escape hatch. `upgrade` is narrower: it may replace only code-known generated output paths carrying the generated marker (plus the lock file), and may create missing generated files. An unmanaged conflict fails closed.
 
-The lock records the installed tool version, config format version, selected profiles and SHA-256 of each generated output. The current MVP supports config format `kit_version = 1` only; a future incompatible format requires an explicit migration rather than silently interpreting newer configuration.
+The lock records the installed tool version, config format version, selected profiles and SHA-256 of each generated output. It is **provenance/state, not an ownership authority**: repository contents can forge or corrupt the lock, so its manifest cannot authorize overwriting or deleting arbitrary paths. Obsolete deletion is constrained by a code-owned generated-output allowlist and the generated marker. A manifest entry outside that allowlist fails closed before mutation.
+
+The current MVP supports config format `kit_version = 1` only; a future incompatible format requires an explicit migration rather than silently interpreting newer configuration.
 
 ## Validation boundary
 
