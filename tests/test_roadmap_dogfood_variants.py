@@ -25,7 +25,7 @@ class RoadmapDogfoodVariantTests(unittest.TestCase):
 
 ### B1 — Compact status item
 - **Status / priority / execution:** Open / Critical / CLOUD RESEARCH
-- **Depends on:** [A1](#a1), **A2**
+- **Depends on:** [A1](#a1), **A2** (verified)
 '''
         items = parse_structured_items(text)
         self.assertEqual(("A1", "A2", "B1"), tuple(item.item_id for item in items))
