@@ -47,9 +47,10 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
 
     Existing dogfood uses both `## ID — Title` and `### ID — Title`. Fieldless
     headings are retained as broken items once the document is structured, except
-    at heading levels that demonstrably act as section containers for deeper
-    field-bearing items. If the document has no field-bearing candidates at all,
-    it remains a pre-normalization milestone sketch and returns no items.
+    for a specific heading that demonstrably contains deeper field-bearing items
+    and therefore acts as a section container. If the document has no field-bearing
+    candidates at all, it remains a pre-normalization milestone sketch and returns
+    no items.
 
     Fenced Markdown examples are ignored so a documented item schema cannot
     create phantom graph nodes.
@@ -128,12 +129,7 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
     if not any(item.fields for item in candidates):
         return ()
 
-    # A fieldless ID-shaped heading can be either a broken item or a section such
-    # as this repository's `## M0 — ...`. A level is demonstrably a section level
-    # when a fieldless candidate at that level contains a deeper field-bearing
-    # candidate before the next same/higher-level candidate. Treat other fieldless
-    # candidates as items so omitting all fields cannot bypass required-field checks.
-    section_levels: set[int] = set()
+    section_lines: set[int] = set()
     for index, item in enumerate(candidates):
         if item.fields:
             continue
@@ -141,13 +137,13 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
             if child.heading_level <= item.heading_level:
                 break
             if child.fields:
-                section_levels.add(item.heading_level)
+                section_lines.add(item.line)
                 break
 
     return tuple(
         item
         for item in candidates
-        if item.fields or item.heading_level not in section_levels
+        if item.fields or item.line not in section_lines
     )
 
 
