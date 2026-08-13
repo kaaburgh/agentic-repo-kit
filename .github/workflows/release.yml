@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: agentic-repo-kit-release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -81,19 +85,27 @@ jobs:
           CURRENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          release_exists=false
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            exit 0
+            release_exists=true
           fi
 
+          tag_exists=false
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            tag_exists=true
             tag_sha="$(git rev-list -n 1 "$TAG")"
             if [[ "$tag_sha" != "$CURRENT_SHA" ]]; then
               echo "existing tag $TAG points to $tag_sha, expected $CURRENT_SHA" >&2
               exit 1
             fi
           fi
-          echo "exists=false" >> "$GITHUB_OUTPUT"
+
+          if [[ "$release_exists" == true && "$tag_exists" != true ]]; then
+            echo "release $TAG exists but the corresponding tag was not fetched/found" >&2
+            exit 1
+          fi
+
+          echo "exists=$release_exists" >> "$GITHUB_OUTPUT"
 
       - name: Build deterministic source archives
         if: steps.gate.outputs.publish == 'true' && steps.state.outputs.exists == 'false'
