@@ -23,15 +23,20 @@ class ReleaseLifecycleTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
         self.assertIn("branches: [main]", workflow)
-        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("workflow_dispatch:", workflow)
         self.assertIn("contents: write", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
         self.assertIn("agentic_repo_kit/__init__.py", workflow)
         self.assertIn("pyproject.toml", workflow)
+        self.assertIn("existing tag $TAG points to", workflow)
+        self.assertIn("assets_complete", workflow)
         self.assertIn("git archive --format=tar", workflow)
         self.assertIn("git archive --format=zip", workflow)
         self.assertIn("gzip -n", workflow)
         self.assertIn("SHA256SUMS", workflow)
         self.assertIn("gh release create", workflow)
+        self.assertIn("gh release upload", workflow)
+        self.assertIn("--clobber", workflow)
         self.assertIn('--target "$CURRENT_SHA"', workflow)
 
 
