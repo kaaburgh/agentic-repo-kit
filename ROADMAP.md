@@ -84,20 +84,20 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK5 — Dogfood operator-handoff upgrade in BB
 
-- **Status:** Blocked
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Dogfood / upgrade path
-- **Depends on:** ARK4 merged
+- **Depends on:** ARK4
 - **Problem / question:** Does a real repository created with v0.1.0 receive the generic operator-handoff policy cleanly through `agentic-repo upgrade` without overwriting its project-local policy or semantic roadmap?
-- **Next experiment:** Run the merged ARK4 kit against `kaaburgh/bb-shadPS4-correctness-instrumentation`, inspect the exact managed diff, and run `agentic-repo check` on the upgraded target checkout/fixture.
-- **Expected information gain:** Validates the real upgrade path rather than only fresh bootstrap rendering and reveals any ownership/drift problem before relying on this policy in BB agent runs.
+- **Known evidence:** Merged target PR `kaaburgh/bb-shadPS4-correctness-instrumentation#3` upgraded the generated contract from tool v0.1.0 to v0.1.1 using the merged ARK4 upgrade path. The dry-run/check produced exactly four managed changes (`AGENTS.md`, `docs/agent-playbook.md`, `docs/roadmap-authoring.md`, lock), preserved project-local policy and roadmap content, and `agentic-repo check` passed. The actual GitHub target diff independently contained only those four managed files; BB PR #3 rebase-merged as commit `e705711c35241d19ac6e3a4682913ec0bea4bb14`.
+- **Result / information gained:** The existing format-1 ownership/upgrade model is sufficient for this policy-only patch release: local inputs and semantic roadmap remain outside managed replacement, while new core policy and tool-version metadata propagate deterministically. No ARK4 follow-up defect was required.
 - **Validation / acceptance:**
   - target change is produced by `agentic-repo upgrade`, not hand-editing generated files;
   - BB project-local baseline policy and normalized `ROADMAP.md` remain unchanged unless an independently justified reconciliation is required;
   - only expected managed outputs/lock change for the generic policy/version update;
   - upgraded target passes `agentic-repo check` with the merged kit;
   - the target PR documents the exact kit commit/tool version used and the observed upgrade diff.
-- **Artifacts / docs:** BB target upgrade PR plus any generic defect follow-up discovered during dogfood
+- **Artifacts / docs:** BB PR #3 and merged BB commit `e705711c35241d19ac6e3a4682913ec0bea4bb14`
 - **Estimated scope:** Small
 
 ## Later
