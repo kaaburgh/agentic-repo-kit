@@ -183,6 +183,22 @@ class KitTests(unittest.TestCase):
 
         self.assertEqual("do not overwrite\n", victim.read_text(encoding="utf-8"))
 
+    def test_structurally_invalid_lock_is_controlled_error(self) -> None:
+        for invalid in ("[]\n", "null\n", '"lock"\n'):
+            with self.subTest(lock=invalid.strip()):
+                temp, root = self.make_repo()
+                self.addCleanup(temp.cleanup)
+                bootstrap(root, root / ".agentic-repo.toml")
+                (root / ".agentic-repo.lock.json").write_text(invalid, encoding="utf-8")
+
+                stderr = io.StringIO()
+                with contextlib.redirect_stderr(stderr):
+                    code = main(["upgrade", str(root)])
+
+                self.assertEqual(2, code)
+                self.assertIn("invalid previous generated manifest", stderr.getvalue())
+                self.assertNotIn("Traceback", stderr.getvalue())
+
     def test_unknown_profile_fails_closed(self) -> None:
         temp, root = self.make_repo()
         self.addCleanup(temp.cleanup)
