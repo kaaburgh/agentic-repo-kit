@@ -2,6 +2,7 @@ kit_version = 1
 profiles = [
   "core",
   "reverse-engineering",
+  "blind-research",
   "proprietary-target",
   "native-binary-patching",
 ]
