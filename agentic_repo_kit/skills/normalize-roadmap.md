@@ -9,6 +9,6 @@ Treat the existing roadmap as source material, not as an executable backlog yet.
 7. Preserve negative results and prior decisions that prevent repeated dead ends.
 8. Ensure the roadmap tells an agent which ready item may be selected next without chat history.
 9. Reconcile README or supporting docs only where the normalized roadmap changes project-level claims.
-10. Validate Markdown links and any repository-specific documentation checks after editing.
+10. Run `agentic-repo check` after editing. Once structured ID-bearing items exist, the check must pass unique-ID, dependency-reference, and acyclic-graph validation in addition to Markdown-link/generated-contract checks.
 
 The normalization pass may change the roadmap structure substantially, but it must not claim implementation or target-runtime validation that did not occur during the pass.
