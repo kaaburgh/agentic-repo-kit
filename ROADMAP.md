@@ -176,19 +176,21 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK9 — Add structural roadmap and evidence-CI robustness checks
 
-- **Status:** Implemented, validation incomplete
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Core tooling / validation
 - **Depends on:** ARK8
 - **Problem / question:** Which roadmap and CI invariants have become stable enough through Ascendancy and BB dogfood to validate mechanically without pretending that semantic dependency correctness or target evidence can be inferred by the CLI?
 - **Known evidence:** Both dogfood repositories now use durable ID-bearing dependency roadmaps, but with two legitimate Markdown shapes (`## ID — ...` plus standalone `Status` in Ascendancy and `### ID — ...` plus compact `Status / priority / execution` in BB). Ascendancy review also exposed that an evidence-producing regression can become falsely reassuring if path filters omit a shared producer/parser/schema/manifest/config dependency.
-- **Implementation evidence:** This branch adds a dependency-free Markdown roadmap parser/validator integrated into `agentic-repo check`, validates unique IDs, required status/dependency semantics, dependency references and DAG structure only after structured items exist, preserves milestone-only pre-normalization compatibility, accepts both established dogfood item/field forms and common exact-ID Markdown wrappers, and documents the semantic boundary. Core policy/playbook/PR guidance now requires evidence-producing CI trigger/filter coverage of all material producer dependencies and prefers the real clean-checkout entry point when acceptance depends on it. Focused tests cover graph failures plus the two dogfood presentation variants. Tool/package version is 0.1.5 while `kit_version = 1` remains unchanged.
+- **Implementation evidence:** ARK9 adds a dependency-free Markdown roadmap parser/validator integrated into `agentic-repo check`, validates unique IDs, required status/dependency semantics, dependency references and DAG structure only after structured items exist, preserves milestone-only pre-normalization compatibility, accepts both established dogfood item/field forms and exact-ID Markdown wrappers, ignores fenced schema examples, and distinguishes fieldless section containers from broken fieldless items. Core policy/playbook/PR guidance requires evidence-producing CI trigger/filter coverage of all material producer dependencies and prefers the real clean-checkout entry point when acceptance depends on it. Self-review found the annotated formatted-ID parser defect that caused the first CI failure. Codex independently reported that P1 plus two P2 gaps: fieldless items could bypass required-field checks and fenced examples could create phantom graph nodes. All three behaviors now have focused regression coverage. Tool/package version is 0.1.5 while `kit_version = 1` remains unchanged.
+- **Validation evidence:** GitHub Actions CI run `31703339122` / run #43 passed on review-corrected head `4016e1a1df48ea51917a32163cf952b1186254f8`: editable install succeeded, all 59 unit tests passed, and `python -m agentic_repo_kit check .` reported a consistent contract. The parser was checked against the established Ascendancy and BB roadmap presentation shapes before PR creation; review-discovered wrapper, fieldless-item, and fenced-example cases were corrected before verification.
 - **Validation / acceptance:**
   - milestone-only roadmaps remain valid before semantic normalization;
-  - normalized item headings at the established `##`/`###` levels are recognized without treating nested prose headings as items;
+  - normalized item headings at the established `##`/`###` levels are recognized without treating nested prose headings or fieldless section containers as items;
   - standalone `Status` and compact `Status / priority / execution` both satisfy the stable status invariant;
-  - duplicate IDs/fields, missing status/dependency fields, malformed/unknown/self dependencies, and dependency cycles are reported deterministically;
-  - `agentic-repo check` integrates structural validation without claiming semantic readiness/root-cause correctness;
+  - duplicate IDs/fields, missing status/dependency fields including fully fieldless broken items, malformed/unknown/self dependencies, and dependency cycles are reported deterministically;
+  - fenced Markdown examples do not participate in the roadmap graph;
+  - `agentic-repo check` integrates structural validation without claiming semantic readiness or dependency correctness;
   - normalization guidance requires a post-edit `agentic-repo check`;
   - core agent/playbook/PR policy requires evidence-producing selective CI triggers to cover material producer/parser/schema/manifest/config dependencies;
   - generated dogfood contract/lock are reconciled and package version advances without a config/lock format break;
