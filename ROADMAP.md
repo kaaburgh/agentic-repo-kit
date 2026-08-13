@@ -151,13 +151,14 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK8 — Add optional blind-research profile
 
-- **Status:** Implemented, validation incomplete
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Reverse engineering / research provenance
 - **Depends on:** ARK7
 - **Problem / question:** Can the blind-RE provenance mechanics proven in Ascendancy become an opt-in reusable profile without imposing blind research on ordinary reverse-engineering repositories or hardcoding a project milestone/unlock name?
 - **Known evidence:** Ascendancy's blind-research policy required a supported evidence boundary, separated `clean`/`contaminated`/`external-assisted` provenance from evidence class, prevented accidental disclosure from becoming blind success after corroboration, and allowed external target-specific research only after the independent result or through a documented bounded rescue.
-- **Implementation evidence:** This branch adds a new orthogonal `blind-research` profile with generated agent/playbook/PR fragments. The profile requires projects to define their own durable blind gate/unlock boundary, excludes target-specific recovered shortcuts while permitting general tooling research, treats unsupported repository history as outside the default supported state, defines persistent contamination and bounded rescue semantics, separates post-blind comparison from the historical blind record, and covers operator-provided artifacts that embed target-specific recovered knowledge. README/profile discovery and the Ascendancy example are updated. Focused generated-contract tests cover the provenance and unlock rules. Tool/package version is bumped to 0.1.4 while `kit_version = 1` remains unchanged.
+- **Implementation evidence:** The ARK8 branch adds a new orthogonal `blind-research` profile with generated agent/playbook/PR fragments. The profile requires projects to define their own durable blind gate/unlock boundary, excludes target-specific recovered shortcuts while permitting general tooling research, treats unsupported repository history as outside the default supported state, defines persistent contamination and bounded rescue semantics, separates post-blind comparison from the historical blind record, and covers operator-provided artifacts that embed target-specific recovered knowledge. README/profile discovery are updated. Self-review found that the first Ascendancy example opted in without defining its required local gate; the example now includes and references a bounded project-local M1 gate/rescue fragment. Codex review found a focused wording mismatch on post-blind comparison; current profile wording matches the asserted invariant. Tool/package version is 0.1.4 while `kit_version = 1` remains unchanged.
+- **Validation evidence:** GitHub Actions CI run `31677943666` / run #35 passed on review-corrected head `baf9105deae4f7eeb40f5d97c287f239db640c5b`: editable install, full unit suite, and `python -m agentic_repo_kit check .` all succeeded.
 - **Validation / acceptance:**
   - `blind-research` is a discoverable opt-in profile and ordinary `reverse-engineering` does not receive it implicitly;
   - the project must define a durable blind gate/unlock boundary; the profile does not hardcode `M1` or another milestone;
@@ -170,7 +171,7 @@ This is the live backlog for turning successful repository-agent conventions int
   - operator-provided generic tools remain usable while target-specific recovered artifacts follow the same contamination/rescue boundary;
   - focused profile-generation tests, full unit suite, and `python -m agentic_repo_kit check .` pass;
   - package patch version advances without a config/lock format break.
-- **Artifacts / docs:** `agentic_repo_kit/profiles/blind-research/`, README, Ascendancy example, focused tests, package version
+- **Artifacts / docs:** `agentic_repo_kit/profiles/blind-research/`, README, Ascendancy example + local gate fragment, focused tests, package version
 - **Estimated scope:** Small/Medium
 
 ## Later
