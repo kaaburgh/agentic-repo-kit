@@ -42,8 +42,11 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
     """Parse normalized roadmap items without interpreting their prose.
 
     Item headings at levels 2-4 are accepted because existing dogfood uses both
-    `## ID — Title` and `### ID — Title`. A non-item heading at the same or a
-    higher level closes the current item; deeper headings stay inside its prose.
+    `## ID — Title` and `### ID — Title`. A heading-shaped candidate is retained
+    only when it owns at least one roadmap field, which keeps section headings
+    such as `## M0 — ...` out of the item graph. A non-item heading at the same
+    or a higher level closes the current candidate; deeper headings stay inside
+    its prose.
     """
 
     items: list[RoadmapItem] = []
@@ -57,7 +60,7 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
     def flush() -> None:
         nonlocal current_id, current_title, current_line, current_level
         nonlocal current_fields, current_duplicate_fields
-        if current_id is not None:
+        if current_id is not None and current_fields:
             items.append(
                 RoadmapItem(
                     item_id=current_id,
@@ -135,7 +138,7 @@ def _dependency_ids(raw: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
 def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple[str, ...]:
     """Validate stable graph invariants for an already-normalized roadmap.
 
-    A milestone sketch with no structured ID headings is intentionally ignored:
+    A milestone sketch with no structured ID items is intentionally ignored:
     semantic normalization is a separate workflow and bootstrap/check must not
     make old planning documents invalid before that pass happens. Once at least
     one structured item exists, IDs/dependencies are validated fail-closed.
