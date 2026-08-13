@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from agentic_repo_kit import __version__
 from agentic_repo_kit.operations import bootstrap, check, upgrade
 
 
@@ -42,7 +43,7 @@ class OperatorHandoffPolicyTests(unittest.TestCase):
         self.assertIn("exact missing tool/capability", agents)
         self.assertIn("Do not infer `LOCAL ONLY`", playbook)
         self.assertIn("failed acquisition in one sandbox is not, by itself, evidence for `LOCAL ONLY`", roadmap_authoring)
-        self.assertEqual("0.1.1", lock["tool_version"])
+        self.assertEqual(__version__, lock["tool_version"])
         self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
 
     def test_upgrade_restores_policy_and_preserves_local_input(self) -> None:
