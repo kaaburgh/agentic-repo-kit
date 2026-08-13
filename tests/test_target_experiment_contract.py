@@ -82,7 +82,7 @@ class TargetExperimentContractTests(unittest.TestCase):
         self.assertIn("scenario/config identity", agents)
         self.assertIn("semantic oracle results", agents)
         self.assertIn("detached machine-readable run record", playbook)
-        self.assertIn("artifact names/digests", playbook)
+        self.assertIn("names/digests of bounded artifacts", playbook)
 
     def test_proprietary_profile_stands_alone_with_versioned_run_manifest(self) -> None:
         temp, root = self.make_repo(PROPRIETARY_ONLY_CONFIG)
