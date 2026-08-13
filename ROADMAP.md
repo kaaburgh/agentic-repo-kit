@@ -137,12 +137,12 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Implementation evidence:** The ARK7 branch adds semantic target-run oracles, explicit termination/runtime bounds, detached run provenance, and capability-vs-target evidence separation to `reverse-engineering`; adds immutable verified input, isolated working-copy/overlay, sanitization, no-payload run-record rules, and standalone schema/version requirements to `proprietary-target`; and makes graphics acceptance oracles checkpoint/state-specific rather than accepting generic frame activity. Self-review caught the missing standalone run-manifest schema rule. Codex review caught two brittle focused assertions; both were aligned to the normative profile invariants rather than weakening policy. Tool/package version is 0.1.3 while `kit_version = 1` remains unchanged.
 - **Validation evidence:** GitHub Actions CI run `31677335349` / run #29 passed on review-corrected head `82dd202b4f227ba9636ec026dde13772bd81681b`: editable install, full unit suite, and `python -m agentic_repo_kit check .` all succeeded.
 - **Validation / acceptance:**
-  - target-run success/failure is defined by an oracle that directly distinguishes the claimed semantic state/behavior rather than generic activity;
+  - target-run success/failure is defined by an oracle that directly distinguishes the claimed target state or behavior rather than generic activity;
   - waits/retries/actions/captures/log volume/overall runtime and termination semantics are bounded where relevant;
   - synthetic/redistributable controls prove harness capability only and cannot be promoted to exact-target runtime claims;
   - proprietary target/fixture inputs are identity-verified and kept immutable, with writable execution isolated to a copy/overlay/work directory;
   - detached run records have an explicit schema/version and preserve target/fixture, scenario/config, harness/tool, material environment, termination, oracle, and artifact provenance without redistributing proprietary payloads;
-  - artifacts sanitize private paths, credentials, user identifiers, and unrelated host data;
+  - artifacts sanitize private paths, credentials, user identifiers, and unrelated environment data;
   - graphics validation requires checkpoint/state-specific evidence where global frame/hash deltas could produce false positives;
   - focused profile-generation tests and the full unit suite pass;
   - `python -m agentic_repo_kit check .` passes and package patch version advances without a format/schema break.
@@ -205,13 +205,14 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK10 — Publish every tool version as a GitHub Release
 
-- **Status:** Implemented, validation incomplete
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Distribution / constrained environments
 - **Depends on:** ARK9
 - **Problem / question:** How can a target repository or restricted agent environment obtain the exact kit version needed for `check`/`upgrade` without depending on package-registry access or an unrestricted GitHub checkout?
 - **Known evidence:** Generated target policy is self-contained for agent reading, but `agentic-repo check` and `upgrade` execute the kit's renderer/validator code. BB remains pinned to tool 0.1.1 while current kit development advances independently, and some agent environments have constrained network/egress.
-- **Implementation evidence:** This branch adds a `main` release workflow that validates package/pyproject/lock version identity, acts only on version-owning pushes (or explicit manual recovery), fail-closes on a reused tag that points to a different commit, serializes publication, produces deterministic tar/zip source archives plus SHA-256 checksums, and creates a GitHub Release at the exact version commit. README documents offline/PYTHONPATH consumption and distinguishes self-contained generated policy from the executable checker.
+- **Implementation evidence:** ARK10 adds a `main` release workflow that validates package/pyproject/lock version identity, acts only on version-owning pushes, fail-closes on a reused tag that points to a different commit, serializes publication, produces deterministic tar/zip source archives plus SHA-256 checksums, and creates a GitHub Release at the exact version commit. Existing partial releases are checked for the required assets and can repair missing assets on a rerun without moving the version tag. README documents offline/PYTHONPATH consumption and distinguishes self-contained generated policy from the executable checker.
+- **Validation evidence:** PR #9 CI run `31710044037` / #46 passed editable install, all 61 unit tests, and `python -m agentic_repo_kit check .`. PR #9 rebase-merged as `bb78345a14a67d0c111f8732f39a577c457d0c85`. The resulting Release workflow run `31710240452` / #1 succeeded and published `v0.1.6` at that exact commit with explicit `agentic-repo-kit-0.1.6.tar.gz`, `agentic-repo-kit-0.1.6.zip`, and `SHA256SUMS` assets.
 - **Validation / acceptance:**
   - every future tool/package version merged to `main` creates or confirms a `v<version>` GitHub Release;
   - release identity requires `agentic_repo_kit.__version__`, `pyproject.toml`, and the dogfood lock `tool_version` to agree;
@@ -221,29 +222,31 @@ This is the live backlog for turning successful repository-agent conventions int
   - docs explain that target CI needs executable kit code and should pin normal drift checks to the target lock's `tool_version`;
   - focused tests, full unit tests, and `python -m agentic_repo_kit check .` pass;
   - after merge, the actual `v0.1.6` GitHub Release exists and points to the merged release commit with the expected assets.
-- **Artifacts / docs:** `.github/workflows/release.yml`, `tests/test_release_lifecycle.py`, README, package version, lock
+- **Artifacts / docs:** `.github/workflows/release.yml`, `tests/test_release_lifecycle.py`, README, package version, lock, GitHub Release `v0.1.6`
 - **Estimated scope:** Small/Medium
 
 ### ARK11 — Safely adopt an existing hand-written repository contract
 
-- **Status:** Blocked
+- **Status:** Implemented, validation incomplete
 - **Priority:** High
 - **Category:** Core tooling / migration
 - **Depends on:** ARK10
 - **Problem / question:** How can a mature repository with hand-written `AGENTS.md`, PR template, playbook, or related policy transfer selected files to kit ownership without `bootstrap --force` silently discarding project-specific rules?
 - **Known evidence:** Ascendancy has a mature hand-written contract whose generic parts now substantially map to `core + reverse-engineering + blind-research + proprietary-target + native-binary-patching`, while exact blind gate/adoption baseline and other project facts must remain local. Current `bootstrap` correctly refuses conflicting unmanaged files but offers no first-class migration packet/acceptance transaction.
-- **Proposed direction after evidence:** Add an explicit adoption workflow that first renders the prospective managed contract without writing, inventories conflicts and project-owned local inputs, emits a durable migration report/diff, and only transfers ownership through an explicit apply step after the operator/PR has preserved required project-specific text in configured local fragments. Keep ordinary `bootstrap` fail-closed; adoption must not make `--force` the normal migration path.
+- **Implementation evidence:** The ARK11 branch adds `agentic-repo adopt` with non-destructive JSON plan mode and explicit `--apply PLAN_ID`. The plan binds tool version, config, roadmap/local-input identities, existing managed-surface hashes/actions, and prospective generated hashes; replacements expose unified diffs and required operator decisions. Apply rejects stale/malformed plans, rechecks reviewed inputs and current/prospective hashes immediately before writes, atomically replaces files, preserves existing POSIX modes/uses readable modes for new files, writes the ownership lock last, and rolls back prior writes on failure. Canonical aliases of generated outputs are rejected as local inputs; plan output cannot overwrite adoption inputs, managed targets, or any existing file. Existing locks route to `upgrade`. Documentation lives in `docs/adoption.md`; tool/package version is 0.1.7 with `kit_version = 1` unchanged.
+- **Validation evidence:** Initial PR CI run `31711751625` / #48 passed 68 tests and self-check. Self-review added an immediate pre-write recheck for reviewed roadmap/local inputs. Codex review identified canonical-path aliasing, destructive plan-output collisions, POSIX `0600` replacement modes, and the stale roadmap status; the three code-path defects were corrected with focused regressions. Review-corrected CI run `31712469402` / #53 passed all 72 unit tests and `python -m agentic_repo_kit check .`. The Ascendancy-shaped fixture proves that a hand-written contract can transfer to `core + reverse-engineering + blind-research + proprietary-target + native-binary-patching` while a project-local M1 blind gate remains outside managed ownership and is composed into the generated contract.
+- **Remaining validation:** Merge must publish `v0.1.7` through the ARK10 release workflow and the release tag/assets must be verified before ARK11 can be marked `Completed and verified`.
 - **Validation / acceptance:**
-  - adoption has a non-destructive default/plan mode that never modifies the repository;
+  - adoption has a non-destructive default/plan mode that never modifies the repository unless an explicit new `--output` artifact path is requested;
   - the plan identifies existing conflicting managed paths and whether prospective output differs;
-  - apply requires an explicit acceptance token or equivalent binding to the exact plan/input state so repository changes between review and apply fail closed;
+  - apply requires an explicit acceptance token bound to the exact plan/input state so repository changes between review and apply fail closed;
   - project-local fragments remain outside managed ownership and are composed into generated output before ownership transfer;
-  - adoption is transactional: all writes/deletions are preflighted before any managed file or lock changes;
-  - existing hand-written contract files are not silently discarded; the migration report makes replaced content and required operator decisions reviewable;
+  - adoption is transactional: all writes are preflighted before any managed file or lock changes, managed files are replaced atomically, the lock is written last, and partial writes are rolled back on failure;
+  - existing hand-written contract files are not silently discarded; the migration report makes replacement diffs and required operator decisions reviewable;
   - after successful adoption, ordinary `agentic-repo check` and later `upgrade` own only the declared managed files;
   - focused synthetic migration tests include an Ascendancy-shaped fixture with hand-written `AGENTS.md`/PR policy plus local blind gate;
   - full unit tests and self-check pass; package version advances and the release workflow publishes that new version.
-- **Artifacts / docs:** adoption CLI/operations, migration report format, tests, README, Ascendancy-shaped fixture/example, package version
+- **Artifacts / docs:** `agentic_repo_kit/adoption.py`, adoption CLI, `docs/adoption.md`, safe-adoption tests, Ascendancy-shaped fixture, package version
 - **Estimated scope:** Medium
 
 ## Later
