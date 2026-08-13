@@ -14,3 +14,6 @@ roadmap = "ROADMAP.md"
 
 [workflow]
 cloud_first = true
+
+[local]
+policy_files = ["blind-research.local.md"]
