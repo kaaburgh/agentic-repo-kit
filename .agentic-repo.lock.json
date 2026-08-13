@@ -2,20 +2,18 @@
   "format": 1,
   "generated": {
     ".github/copilot-instructions.md": "6fe72eca1eab8a997562d448c54a6bb8d4f7726186a07dfc6d328022a9b03bf2",
-    ".github/pull_request_template.md": "3113d9e5d18809b728d13bb145e2c416a892b605285652d69a5cab8bef617aee",
-    "AGENTS.md": "e70ff721ac1be35a8f5f9c1262032d5aec88a59e2606a1fa6c0a67d0ec92231b",
+    ".github/pull_request_template.md": "36bb3b090dd54470c0b6ef13e67f88f6a942e9771ba23ef332bbfb5ea1bac520",
+    "AGENTS.md": "a98b4d1ec24543b4bf4841316a3381807795432746a2cf3904ef07feb679a7a5",
     "CLAUDE.md": "e68ff4b91505b9ca79f6f6656439c0c73a3448581f92407f25ee20aba9320088",
-    "docs/agent-playbook.md": "83f98b8e4480357f253320061a33aa7ac26214304fcc10b8a22477cda65bc8ea",
-    "docs/roadmap-authoring.md": "d1a82134e2f0cca06cd8eb1dff3a7e864ca3ba4e1f8f5f53dfd8c1d7e634f62b"
+    "docs/agent-playbook.md": "a5978a89167d01c3ca8a71815c5c440008aacdb6c39bbd35f73ad4bbadc5e43c",
+    "docs/roadmap-authoring.md": "b0c6e61685d139253846abf5996c8c4b1b1afaef509670d2a1d8826823a708e4"
   },
   "kit_version": 1,
-  "profiles": [
-    "core"
-  ],
+  "profiles": ["core"],
   "project": {
     "kind": "developer-tool / repository-policy-compiler",
     "name": "agentic-repo-kit",
     "roadmap": "ROADMAP.md"
   },
-  "tool_version": "0.1.4"
+  "tool_version": "0.1.5"
 }
