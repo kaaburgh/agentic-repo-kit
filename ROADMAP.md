@@ -199,8 +199,54 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** `agentic_repo_kit/roadmap.py`, `agentic_repo_kit/operations.py`, core policy/playbook/PR fragments, roadmap-authoring/normalization guidance, README, generated dogfood files, focused tests, package version
 - **Estimated scope:** Medium
 
+## M4 — distribution and mature repository adoption
+
+> Each tool version is reproducibly obtainable without package-registry access, and repositories with an existing hand-written agent contract can transfer managed ownership to the kit without a destructive `--force` bootstrap.
+
+### ARK10 — Publish every tool version as a GitHub Release
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Distribution / constrained environments
+- **Depends on:** ARK9
+- **Problem / question:** How can a target repository or restricted agent environment obtain the exact kit version needed for `check`/`upgrade` without depending on package-registry access or an unrestricted GitHub checkout?
+- **Known evidence:** Generated target policy is self-contained for agent reading, but `agentic-repo check` and `upgrade` execute the kit's renderer/validator code. BB remains pinned to tool 0.1.1 while current kit development advances independently, and some agent environments have constrained network/egress.
+- **Implementation evidence:** This branch adds a `main` release workflow that validates package/pyproject/lock version identity, acts only on version-owning pushes (or explicit manual recovery), fail-closes on a reused tag that points to a different commit, serializes publication, produces deterministic tar/zip source archives plus SHA-256 checksums, and creates a GitHub Release at the exact version commit. README documents offline/PYTHONPATH consumption and distinguishes self-contained generated policy from the executable checker.
+- **Validation / acceptance:**
+  - every future tool/package version merged to `main` creates or confirms a `v<version>` GitHub Release;
+  - release identity requires `agentic_repo_kit.__version__`, `pyproject.toml`, and the dogfood lock `tool_version` to agree;
+  - a tag/release pointing to a different commit fails closed rather than being silently reused;
+  - release assets include deterministic `.tar.gz` and `.zip` source archives plus `SHA256SUMS`;
+  - an extracted archive can run `python -m agentic_repo_kit check` or `upgrade` via `PYTHONPATH` without package-registry access;
+  - docs explain that target CI needs executable kit code and should pin normal drift checks to the target lock's `tool_version`;
+  - focused tests, full unit tests, and `python -m agentic_repo_kit check .` pass;
+  - after merge, the actual `v0.1.6` GitHub Release exists and points to the merged release commit with the expected assets.
+- **Artifacts / docs:** `.github/workflows/release.yml`, `tests/test_release_lifecycle.py`, README, package version, lock
+- **Estimated scope:** Small/Medium
+
+### ARK11 — Safely adopt an existing hand-written repository contract
+
+- **Status:** Blocked
+- **Priority:** High
+- **Category:** Core tooling / migration
+- **Depends on:** ARK10
+- **Problem / question:** How can a mature repository with hand-written `AGENTS.md`, PR template, playbook, or related policy transfer selected files to kit ownership without `bootstrap --force` silently discarding project-specific rules?
+- **Known evidence:** Ascendancy has a mature hand-written contract whose generic parts now substantially map to `core + reverse-engineering + blind-research + proprietary-target + native-binary-patching`, while exact blind gate/adoption baseline and other project facts must remain local. Current `bootstrap` correctly refuses conflicting unmanaged files but offers no first-class migration packet/acceptance transaction.
+- **Proposed direction after evidence:** Add an explicit adoption workflow that first renders the prospective managed contract without writing, inventories conflicts and project-owned local inputs, emits a durable migration report/diff, and only transfers ownership through an explicit apply step after the operator/PR has preserved required project-specific text in configured local fragments. Keep ordinary `bootstrap` fail-closed; adoption must not make `--force` the normal migration path.
+- **Validation / acceptance:**
+  - adoption has a non-destructive default/plan mode that never modifies the repository;
+  - the plan identifies existing conflicting managed paths and whether prospective output differs;
+  - apply requires an explicit acceptance token or equivalent binding to the exact plan/input state so repository changes between review and apply fail closed;
+  - project-local fragments remain outside managed ownership and are composed into generated output before ownership transfer;
+  - adoption is transactional: all writes/deletions are preflighted before any managed file or lock changes;
+  - existing hand-written contract files are not silently discarded; the migration report makes replaced content and required operator decisions reviewable;
+  - after successful adoption, ordinary `agentic-repo check` and later `upgrade` own only the declared managed files;
+  - focused synthetic migration tests include an Ascendancy-shaped fixture with hand-written `AGENTS.md`/PR policy plus local blind gate;
+  - full unit tests and self-check pass; package version advances and the release workflow publishes that new version.
+- **Artifacts / docs:** adoption CLI/operations, migration report format, tests, README, Ascendancy-shaped fixture/example, package version
+- **Estimated scope:** Medium
+
 ## Later
 
-- Support safe adoption of repositories that already have hand-written `AGENTS.md`/PR templates instead of requiring an explicit migration step.
 - Define versioned profile compatibility/migrations when kit format 2 is needed.
 - Decide whether semantic roadmap normalization should remain an agent skill packet or gain optional model-provider integration; do not add an LLM dependency without evidence that it improves the workflow.
