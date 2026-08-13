@@ -149,6 +149,30 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** `agentic_repo_kit/profiles/reverse-engineering/`, `agentic_repo_kit/profiles/proprietary-target/`, `agentic_repo_kit/profiles/graphics/`, tests, package version
 - **Estimated scope:** Small/Medium
 
+### ARK8 — Add optional blind-research profile
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Reverse engineering / research provenance
+- **Depends on:** ARK7
+- **Problem / question:** Can the blind-RE provenance mechanics proven in Ascendancy become an opt-in reusable profile without imposing blind research on ordinary reverse-engineering repositories or hardcoding a project milestone/unlock name?
+- **Known evidence:** Ascendancy's blind-research policy required a supported evidence boundary, separated `clean`/`contaminated`/`external-assisted` provenance from evidence class, prevented accidental disclosure from becoming blind success after corroboration, and allowed external target-specific research only after the independent result or through a documented bounded rescue.
+- **Implementation evidence:** This branch adds a new orthogonal `blind-research` profile with generated agent/playbook/PR fragments. The profile requires projects to define their own durable blind gate/unlock boundary, excludes target-specific recovered shortcuts while permitting general tooling research, treats unsupported repository history as outside the default supported state, defines persistent contamination and bounded rescue semantics, separates post-blind comparison from the historical blind record, and covers operator-provided artifacts that embed target-specific recovered knowledge. README/profile discovery and the Ascendancy example are updated. Focused generated-contract tests cover the provenance and unlock rules. Tool/package version is bumped to 0.1.4 while `kit_version = 1` remains unchanged.
+- **Validation / acceptance:**
+  - `blind-research` is a discoverable opt-in profile and ordinary `reverse-engineering` does not receive it implicitly;
+  - the project must define a durable blind gate/unlock boundary; the profile does not hardcode `M1` or another milestone;
+  - allowed primary evidence and prohibited target-specific recovered source classes are distinguished without blocking general tooling research;
+  - default supported repository state is current mainline plus branch/PR, while unsupported history cannot silently supply target answers;
+  - provenance modifiers remain separate from evidence class and include `clean`, `contaminated`, and `external-assisted` semantics;
+  - accidental disclosure remains contaminated even after independent correctness corroboration;
+  - pre-unlock rescue requires a prior durable blocker/negative result plus a bounded durable maintainer unlock and does not generalize;
+  - post-blind comparison preserves the independent result and records agreements/disagreements separately;
+  - operator-provided generic tools remain usable while target-specific recovered artifacts follow the same contamination/rescue boundary;
+  - focused profile-generation tests, full unit suite, and `python -m agentic_repo_kit check .` pass;
+  - package patch version advances without a config/lock format break.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/blind-research/`, README, Ascendancy example, focused tests, package version
+- **Estimated scope:** Small/Medium
+
 ## Later
 
 - Support safe adoption of repositories that already have hand-written `AGENTS.md`/PR templates instead of requiring an explicit migration step.
