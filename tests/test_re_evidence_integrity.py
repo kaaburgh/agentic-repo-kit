@@ -45,8 +45,10 @@ class ReverseEngineeringEvidenceIntegrityTests(unittest.TestCase):
         playbook = (root / "docs/agent-playbook.md").read_text(encoding="utf-8")
 
         self.assertIn("schema/version identifier", agents)
+        self.assertIn("all material inputs", agents)
         self.assertIn("reject stale or semantically incompatible evidence", agents)
         self.assertIn("explicit ambiguous/unmapped result", agents)
+        self.assertIn("every material target/reference/configuration input", playbook)
         self.assertIn("reject missing, legacy, or incompatible provenance", playbook)
         self.assertIn("unmapped`/`ambiguous` outcomes", playbook)
 
