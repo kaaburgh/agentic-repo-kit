@@ -7,6 +7,7 @@ import re
 _ITEM_HEADING = re.compile(r"^(#{2,4})\s+([A-Za-z][A-Za-z0-9._-]*)\s+(?:—|--|-)\s+(.+?)\s*$")
 _ANY_HEADING = re.compile(r"^(#{1,6})\s+")
 _FIELD = re.compile(r"^- \*\*([^*]+):\*\*\s*(.*?)\s*$")
+_FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 _ID = r"[A-Za-z][A-Za-z0-9._-]*"
 _LINKED_DEP_ID = re.compile(rf"^\[({_ID})\]\([^)]*\)(?:\s+\([^)]*\))?$")
 _CODE_DEP_ID = re.compile(rf"^`({_ID})`(?:\s+\([^)]*\))?$")
@@ -44,27 +45,31 @@ def _field_matches(item: RoadmapItem, semantic_name: str) -> tuple[tuple[str, st
 def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
     """Parse normalized roadmap items without interpreting their prose.
 
-    Item headings at levels 2-4 are accepted because existing dogfood uses both
-    `## ID — Title` and `### ID — Title`. A heading-shaped candidate is retained
-    only when it owns at least one roadmap field, which keeps section headings
-    such as `## M0 — ...` out of the item graph. A non-item heading at the same
-    or a higher level closes the current candidate; deeper headings stay inside
-    its prose.
+    Existing dogfood uses both `## ID — Title` and `### ID — Title`. Fieldless
+    headings are retained as broken items once the document is structured, except
+    at heading levels that demonstrably act as section containers for deeper
+    field-bearing items. If the document has no field-bearing candidates at all,
+    it remains a pre-normalization milestone sketch and returns no items.
+
+    Fenced Markdown examples are ignored so a documented item schema cannot
+    create phantom graph nodes.
     """
 
-    items: list[RoadmapItem] = []
+    candidates: list[RoadmapItem] = []
     current_id: str | None = None
     current_title = ""
     current_line = 0
     current_level = 0
     current_fields: dict[str, str] = {}
     current_duplicate_fields: list[str] = []
+    fence_char: str | None = None
+    fence_length = 0
 
     def flush() -> None:
         nonlocal current_id, current_title, current_line, current_level
         nonlocal current_fields, current_duplicate_fields
-        if current_id is not None and current_fields:
-            items.append(
+        if current_id is not None:
+            candidates.append(
                 RoadmapItem(
                     item_id=current_id,
                     title=current_title,
@@ -82,6 +87,18 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
         current_duplicate_fields = []
 
     for lineno, line in enumerate(text.splitlines(), start=1):
+        fence = _FENCE.match(line)
+        if fence_char is not None:
+            if fence and fence.group(1)[0] == fence_char and len(fence.group(1)) >= fence_length:
+                fence_char = None
+                fence_length = 0
+            continue
+        if fence:
+            marker = fence.group(1)
+            fence_char = marker[0]
+            fence_length = len(marker)
+            continue
+
         heading = _ITEM_HEADING.match(line)
         if heading:
             flush()
@@ -107,7 +124,31 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
                 current_fields[name] = field.group(2).strip()
 
     flush()
-    return tuple(items)
+
+    if not any(item.fields for item in candidates):
+        return ()
+
+    # A fieldless ID-shaped heading can be either a broken item or a section such
+    # as this repository's `## M0 — ...`. A level is demonstrably a section level
+    # when a fieldless candidate at that level contains a deeper field-bearing
+    # candidate before the next same/higher-level candidate. Treat other fieldless
+    # candidates as items so omitting all fields cannot bypass required-field checks.
+    section_levels: set[int] = set()
+    for index, item in enumerate(candidates):
+        if item.fields:
+            continue
+        for child in candidates[index + 1 :]:
+            if child.heading_level <= item.heading_level:
+                break
+            if child.fields:
+                section_levels.add(item.heading_level)
+                break
+
+    return tuple(
+        item
+        for item in candidates
+        if item.fields or item.heading_level not in section_levels
+    )
 
 
 def _dependency_ids(raw: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
