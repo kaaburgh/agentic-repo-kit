@@ -9,6 +9,7 @@ from pathlib import Path
 from . import __version__
 from .config import RepositoryConfig
 from .errors import AgenticRepoError
+from .paths import confined_repo_path
 from .profiles import load_fragment
 
 
@@ -22,11 +23,13 @@ def _template(name: str) -> str:
 def _local_fragments(root: Path, paths: tuple[str, ...]) -> list[str]:
     fragments: list[str] = []
     for relative in paths:
-        path = root / relative
+        path = confined_repo_path(root, relative, label="local input")
         try:
             fragments.append(path.read_text(encoding="utf-8").strip())
         except FileNotFoundError as exc:
             raise AgenticRepoError(f"local input not found: {relative}") from exc
+        except IsADirectoryError as exc:
+            raise AgenticRepoError(f"local input is not a regular file: {relative}") from exc
     return fragments
 
 
@@ -49,6 +52,7 @@ def _replace(template: str, replacements: dict[str, str]) -> str:
 
 
 def render_generated_files(config: RepositoryConfig, root: Path) -> dict[str, str]:
+    confined_repo_path(root, config.project.roadmap, label="project.roadmap")
     common = {
         "MARKER": GENERATED_MARKER,
         "PROJECT_NAME": config.project.name,
@@ -59,7 +63,7 @@ def render_generated_files(config: RepositoryConfig, root: Path) -> dict[str, st
         "PLAYBOOK_SECTIONS": _compose(config, "playbook.md", root),
         "PR_SECTIONS": _compose(config, "pr.md", root),
         "CLOUD_FIRST": "enabled" if config.workflow.cloud_first else "not required",
-        "ONE_ITEM_PER_PR": "required" if config.workflow.one_roadmap_item_per_pr else "not required",
+        "ONE_ITEM_PER_PR": "required",
     }
 
     generated = {

@@ -20,8 +20,6 @@ class ProjectConfig:
 @dataclass(frozen=True)
 class WorkflowConfig:
     cloud_first: bool = True
-    roadmap_driven: bool = True
-    one_roadmap_item_per_pr: bool = True
 
 
 @dataclass(frozen=True)
@@ -40,10 +38,24 @@ class RepositoryConfig:
     local: LocalInputs = field(default_factory=LocalInputs)
 
 
-def _string_list(table: dict, key: str) -> tuple[str, ...]:
+def _reject_unknown(table: dict, allowed: set[str], context: str) -> None:
+    unknown = sorted(set(table) - allowed)
+    if unknown:
+        raise AgenticRepoError(f"unknown {context} key(s): {', '.join(unknown)}")
+
+
+def _table(raw: dict, key: str) -> dict:
+    value = raw.get(key, {})
+    if not isinstance(value, dict):
+        raise AgenticRepoError(f"{key} must be a table")
+    return value
+
+
+def _string_list(table: dict, key: str, *, context: str = "") -> tuple[str, ...]:
     value = table.get(key, [])
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise AgenticRepoError(f"{key} must be an array of strings")
+        prefix = f"{context}." if context else ""
+        raise AgenticRepoError(f"{prefix}{key} must be an array of strings")
     return tuple(value)
 
 
@@ -55,8 +67,10 @@ def load_config(path: Path) -> RepositoryConfig:
     except tomllib.TOMLDecodeError as exc:
         raise AgenticRepoError(f"invalid TOML in {path}: {exc}") from exc
 
+    _reject_unknown(raw, {"kit_version", "profiles", "project", "workflow", "local"}, "top-level")
+
     kit_version = raw.get("kit_version")
-    if not isinstance(kit_version, int) or kit_version < 1:
+    if not isinstance(kit_version, int) or isinstance(kit_version, bool) or kit_version < 1:
         raise AgenticRepoError("kit_version must be a positive integer")
     if kit_version != SUPPORTED_KIT_VERSION:
         raise AgenticRepoError(
@@ -73,32 +87,27 @@ def load_config(path: Path) -> RepositoryConfig:
     if profiles[0] != "core":
         raise AgenticRepoError("'core' must be the first profile")
 
-    project = raw.get("project", {})
+    project = _table(raw, "project")
+    _reject_unknown(project, {"name", "kind", "roadmap"}, "project")
     name = project.get("name")
     kind = project.get("kind")
     roadmap = project.get("roadmap", "ROADMAP.md")
     if not all(isinstance(value, str) and value.strip() for value in (name, kind, roadmap)):
         raise AgenticRepoError("project.name, project.kind and project.roadmap must be non-empty strings")
 
-    workflow_raw = raw.get("workflow", {})
+    workflow_raw = _table(raw, "workflow")
+    _reject_unknown(workflow_raw, {"cloud_first"}, "workflow")
+    cloud_first = workflow_raw.get("cloud_first", True)
+    if not isinstance(cloud_first, bool):
+        raise AgenticRepoError("workflow.cloud_first must be a boolean")
+    workflow = WorkflowConfig(cloud_first=cloud_first)
 
-    def workflow_bool(key: str, default: bool) -> bool:
-        value = workflow_raw.get(key, default)
-        if not isinstance(value, bool):
-            raise AgenticRepoError(f"workflow.{key} must be a boolean")
-        return value
-
-    workflow = WorkflowConfig(
-        cloud_first=workflow_bool("cloud_first", True),
-        roadmap_driven=workflow_bool("roadmap_driven", True),
-        one_roadmap_item_per_pr=workflow_bool("one_roadmap_item_per_pr", True),
-    )
-
-    local_raw = raw.get("local", {})
+    local_raw = _table(raw, "local")
+    _reject_unknown(local_raw, {"policy_files", "playbook_files", "pr_files"}, "local")
     local = LocalInputs(
-        policy_files=_string_list(local_raw, "policy_files"),
-        playbook_files=_string_list(local_raw, "playbook_files"),
-        pr_files=_string_list(local_raw, "pr_files"),
+        policy_files=_string_list(local_raw, "policy_files", context="local"),
+        playbook_files=_string_list(local_raw, "playbook_files", context="local"),
+        pr_files=_string_list(local_raw, "pr_files", context="local"),
     )
 
     return RepositoryConfig(
