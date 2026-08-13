@@ -8,11 +8,12 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK1 — Bootstrap the first usable kit
 
-- **Status:** Implemented, validation complete on branch
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Core tooling
 - **Depends on:** none
 - **Problem / question:** Extract the reusable process learned from the Ascendancy bootstrap into a small installable tool rather than a GitHub template or copy/paste convention.
+- **Known evidence:** Merged PR `kaaburgh/agentic-repo-kit#1` delivered the v0.1.0 compiler and passed its unit/CI/self-check validation.
 - **Acceptance:**
   - dependency-free Python CLI exposes `inspect`, `profiles`, `bootstrap`, `check`, `upgrade`, and `normalize-roadmap`;
   - generated contracts are versioned by `.agentic-repo.toml` and `.agentic-repo.lock.json`;
@@ -30,24 +31,73 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK2 — Bootstrap bb-shadPS4-correctness-instrumentation
 
-- **Status:** Open
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Dogfood / emulator + graphics
-- **Depends on:** ARK1 merged
+- **Depends on:** ARK1
 - **Problem / question:** Apply the kit to `kaaburgh/bb-shadPS4-correctness-instrumentation` using `core + reverse-engineering + proprietary-target + emulator + graphics + upstream-first`.
+- **Known evidence:** Merged target PR `kaaburgh/bb-shadPS4-correctness-instrumentation#1` compiled the self-contained contract with the intended profiles, preserved the milestone-level roadmap unchanged, and added project-local provenance policy rather than editing managed output.
 - **Acceptance:** bootstrap PR contains the self-contained agent contract without rewriting the project roadmap; any generic deficiencies discovered are fixed in this repository first or in a clearly linked follow-up.
-- **Artifacts / docs:** target-repository PR plus updates here if the profile model changes
+- **Artifacts / docs:** target PR #1; BB `.agentic-repo.toml`, lock, generated policy, and project-local baseline fragment
 - **Estimated scope:** Small/Medium
 
 ### ARK3 — Normalize the Bloodborne/shadPS4 roadmap
 
-- **Status:** GATED
+- **Status:** Completed and verified
 - **Priority:** High
 - **Category:** Dogfood / roadmap compiler
 - **Depends on:** ARK2
-- **Problem / question:** Turn the current milestone-level roadmap into dependency-aware, agent-sized correctness/instrumentation work without inventing emulator or game facts.
+- **Problem / question:** Turn the milestone-level roadmap into dependency-aware, agent-sized correctness/instrumentation work without inventing emulator or game facts.
+- **Known evidence:** Merged target PR `kaaburgh/bb-shadPS4-correctness-instrumentation#2` produced 34 bounded items with explicit dependencies/execution gates, reconciled review-discovered dependency defects, and kept runtime facts explicitly unknown.
 - **Acceptance:** the target roadmap can drive one bounded PR at a time and records emulator commit, title build, and host GPU/backend provenance where relevant.
+- **Artifacts / docs:** target PR #2 and normalized BB `ROADMAP.md`
 - **Estimated scope:** Medium
+
+## M2 — constrained-environment portability
+
+> A repository contract must distinguish a project capability from the capabilities of one sandbox. Restricted network/egress or missing package managers should produce a bounded operator handoff, not an unsupported declaration that the task or capability is impossible.
+
+### ARK4 — Add generic operator-handoff policy
+
+- **Status:** Open
+- **Priority:** High
+- **Category:** Core policy / constrained environments
+- **Depends on:** ARK3
+- **Problem / question:** How should every generated contract behave when a required tool or capability cannot be acquired in the current agent environment because of sandbox, network/egress, package-manager, permission, platform, or similar constraints?
+- **Known evidence:** BB dogfood exposed that the v0.1.0 `core` contract has cloud/gated execution guidance but no generic rule that failure to acquire a tool in one sandbox is not evidence that the capability is unavailable to the project. `ascendancy-auto-management` already carries a project-local operator-handoff rule that demonstrates the desired behavior.
+- **Proposed direction after evidence:** Put the generic semantics in `core`, keep project-specific evidence/licensing restrictions in local/domain policy, and align roadmap execution guidance so a failed acquisition alone cannot justify `LOCAL ONLY`.
+- **Validation / acceptance:**
+  - generated `AGENTS.md` says a missing tool in one environment is not evidence that the project capability or task is impossible;
+  - agents first prefer a reasonable bounded in-project tool/capability when appropriate, then normal install/download/bootstrap/attached-artifact paths;
+  - environment acquisition failure blocks only the dependent line of work; independent work continues;
+  - operator handoff records the exact capability/tool, relevant version/platform, why it is required, attempted acquisition paths, and concrete failures;
+  - absence of an immediately available operator does not authorize idling or abandoning independent work; the bounded blocker is preserved for handoff;
+  - operator-provided generic tools/artifacts remain subject to repository-specific safety/evidence rules rather than bypassing them;
+  - failure to acquire a tool in one sandbox is explicitly insufficient, by itself, to classify work `LOCAL ONLY`;
+  - the operational playbook and roadmap-authoring environment guidance are consistent with the policy;
+  - generated-output regression tests cover the new core text and `upgrade` propagation while preserving unmanaged/local inputs;
+  - the repository dogfoods the new generated core contract and `agentic-repo check` passes;
+  - because generated policy semantics change without a format/schema break, bump the tool/package patch version while keeping `kit_version = 1`.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/core/`, roadmap-authoring template, generated dogfood files, tests, package version
+- **Estimated scope:** Small/Medium
+
+### ARK5 — Dogfood operator-handoff upgrade in BB
+
+- **Status:** Blocked
+- **Priority:** High
+- **Category:** Dogfood / upgrade path
+- **Depends on:** ARK4 merged
+- **Problem / question:** Does a real repository created with v0.1.0 receive the generic operator-handoff policy cleanly through `agentic-repo upgrade` without overwriting its project-local policy or semantic roadmap?
+- **Next experiment:** Run the merged ARK4 kit against `kaaburgh/bb-shadPS4-correctness-instrumentation`, inspect the exact managed diff, and run `agentic-repo check` on the upgraded target checkout/fixture.
+- **Expected information gain:** Validates the real upgrade path rather than only fresh bootstrap rendering and reveals any ownership/drift problem before relying on this policy in BB agent runs.
+- **Validation / acceptance:**
+  - target change is produced by `agentic-repo upgrade`, not hand-editing generated files;
+  - BB project-local baseline policy and normalized `ROADMAP.md` remain unchanged unless an independently justified reconciliation is required;
+  - only expected managed outputs/lock change for the generic policy/version update;
+  - upgraded target passes `agentic-repo check` with the merged kit;
+  - the target PR documents the exact kit commit/tool version used and the observed upgrade diff.
+- **Artifacts / docs:** BB target upgrade PR plus any generic defect follow-up discovered during dogfood
+- **Estimated scope:** Small
 
 ## Later
 
