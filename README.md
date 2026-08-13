@@ -5,7 +5,7 @@
 The core model has three layers:
 
 1. **generic core** — source-of-truth precedence, live-roadmap discipline, bounded PR scope, honest validation, durable decisions;
-2. **domain profiles** — reverse engineering, proprietary targets, native binary patching, emulator correctness, graphics/GPU work, upstream-first development;
+2. **domain profiles** — reverse engineering, optional blind-research provenance, proprietary targets, native binary patching, emulator correctness, graphics/GPU work, upstream-first development;
 3. **project-specific inputs** — product facts, local policy fragments, roadmap, build/test/install commands and target-specific evidence that stay in the target repository.
 
 Generated target repositories remain self-contained: agents read local `AGENTS.md` and docs, not this repository at runtime.
@@ -85,13 +85,14 @@ Local fragment paths must remain inside the repository and may not traverse syml
 
 - `core`
 - `reverse-engineering`
+- `blind-research`
 - `proprietary-target`
 - `native-binary-patching`
 - `emulator`
 - `graphics`
 - `upstream-first`
 
-Profiles are intentionally orthogonal. Ascendancy-like native patching should not receive emulator policy, and shadPS4 correctness work should not receive `DllMain`/machine-code patch rules simply because another RE project needed them.
+Profiles are intentionally orthogonal. `blind-research` is opt-in for projects that deliberately want to preserve or measure independent discovery before consulting target-specific recovered knowledge; ordinary reverse-engineering projects do not receive that restriction automatically. Ascendancy-like native patching should not receive emulator policy, and shadPS4 correctness work should not receive `DllMain`/machine-code patch rules simply because another RE project needed them.
 
 Example configurations live under [`examples/`](./examples/).
 
