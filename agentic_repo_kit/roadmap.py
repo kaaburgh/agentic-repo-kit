@@ -27,12 +27,7 @@ def _normalize_field_name(raw: str) -> str:
 
 
 def _field_matches(item: RoadmapItem, semantic_name: str) -> tuple[tuple[str, str], ...]:
-    """Return fields whose slash-separated label contains the requested semantic field.
-
-    Real normalized dogfood uses both `Status:` and the compact
-    `Status / priority / execution:` spelling.  The structural validator cares
-    about the stable semantic field, not one presentation choice.
-    """
+    """Return fields whose slash-separated label contains the requested semantic field."""
 
     semantic_name = _normalize_field_name(semantic_name)
     matches: list[tuple[str, str]] = []
@@ -47,9 +42,8 @@ def parse_structured_items(text: str) -> tuple[RoadmapItem, ...]:
     """Parse normalized roadmap items without interpreting their prose.
 
     Item headings at levels 2-4 are accepted because existing dogfood uses both
-    `## ID — Title` and `### ID — Title`.  A non-item heading at the same or a
-    higher level closes the current item; deeper headings remain part of the
-    item's prose and may contain outcomes/notes.
+    `## ID — Title` and `### ID — Title`. A non-item heading at the same or a
+    higher level closes the current item; deeper headings stay inside its prose.
     """
 
     items: list[RoadmapItem] = []
@@ -123,8 +117,6 @@ def _dependency_ids(raw: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
             malformed.append("<empty>")
             continue
 
-        # Common Markdown wrappers should not make an otherwise exact roadmap ID
-        # unparseable.  The validator intentionally does not accept free-form prose.
         if token.startswith("`") and token.endswith("`") and len(token) > 2:
             token = token[1:-1].strip()
         if token.startswith("**") and token.endswith("**") and len(token) > 4:
@@ -145,7 +137,7 @@ def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple
 
     A milestone sketch with no structured ID headings is intentionally ignored:
     semantic normalization is a separate workflow and bootstrap/check must not
-    make old planning documents invalid before that pass happens.  Once at least
+    make old planning documents invalid before that pass happens. Once at least
     one structured item exists, IDs/dependencies are validated fail-closed.
     """
 
@@ -177,9 +169,7 @@ def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple
 
         status_fields = _field_matches(item, "status")
         if not status_fields or not status_fields[0][1].strip():
-            problems.append(
-                f"{path}:{item.line}: structured item {item.item_id} is missing a **Status:** field"
-            )
+            problems.append(f"{path}:{item.line}: structured item {item.item_id} is missing **Status:**")
         elif len(status_fields) > 1:
             labels = ", ".join(name for name, _ in status_fields)
             problems.append(
@@ -188,9 +178,7 @@ def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple
 
         depends_fields = _field_matches(item, "depends on")
         if not depends_fields or not depends_fields[0][1].strip():
-            problems.append(
-                f"{path}:{item.line}: structured item {item.item_id} is missing a **Depends on:** field"
-            )
+            problems.append(f"{path}:{item.line}: structured item {item.item_id} is missing **Depends on:**")
             graph[item.item_id] = ()
             continue
         if len(depends_fields) > 1:
