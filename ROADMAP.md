@@ -100,6 +100,31 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** BB PR #3 and merged BB commit `e705711c35241d19ac6e3a4682913ec0bea4bb14`
 - **Estimated scope:** Small
 
+## M3 — evidence engineering from production RE dogfood
+
+> Reusable RE profiles should protect not only patch safety but also the integrity of the evidence used to discover and justify a patch.
+
+### ARK6 — Add reverse-engineering evidence integrity contract
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Reverse engineering / evidence integrity
+- **Depends on:** ARK5
+- **Problem / question:** Which Ascendancy review lessons about independent validation, derived analysis artifacts, ambiguity, and ABI inference are generic enough to become reusable reverse-engineering policy?
+- **Known evidence:** `ascendancy-auto-management` CF2/T2/RE1/RE2 reviews exposed four recurring failure modes: circular validation of a derived mapping, stale or semantically incompatible machine artifacts, arbitrary identity assignment under duplicate/ambiguous matches, and argument interpretation based on an assumed compiler ABI rather than observed call behavior.
+- **Implementation evidence:** This branch strengthens the `reverse-engineering` profile and experiment template with independent-oracle rules, schema/input/producer provenance for machine-readable evidence, fail-closed stale-data handling, explicit ambiguous/unmapped outcomes, and observed ABI evidence. `native-binary-patching` receives the corresponding hook/trampoline ABI boundary. Focused generated-contract tests cover each rule. Tool/package version is bumped to 0.1.2 while `kit_version = 1` remains unchanged.
+- **Validation / acceptance:**
+  - generated RE policy rejects circular self-validation as independent evidence and distinguishes internal consistency from independent corroboration;
+  - derived machine-readable RE artifacts carry schema, input, and producer/analysis-model provenance sufficient to reject stale or incompatible evidence;
+  - ambiguous/duplicate matches remain machine-visible as ambiguous or unmapped rather than being resolved by arbitrary ordering or fuzzy tie-breaks;
+  - ABI/calling-convention claims used for argument interpretation or hook design require direct target evidence when practical;
+  - reproducible experiment guidance includes setup/tool versions, differentiating outcomes, artifact names, evidence/confidence, and the next question;
+  - focused tests prove the selected profiles compile those rules into generated `AGENTS.md`, playbook, PR template, and experiment docs;
+  - full unit tests and `python -m agentic_repo_kit check .` pass;
+  - policy semantics change without a format/schema break, so the package patch version advances while `kit_version = 1` remains stable.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/reverse-engineering/`, `agentic_repo_kit/profiles/native-binary-patching/`, experiment template, tests, package version
+- **Estimated scope:** Small/Medium
+
 ## Later
 
 - Support safe adoption of repositories that already have hand-written `AGENTS.md`/PR templates instead of requiring an explicit migration step.
