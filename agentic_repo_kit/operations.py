@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
 import json
 from importlib.resources import files
 from pathlib import Path
@@ -15,6 +14,21 @@ from .render import GENERATED_MARKER, render_generated_files
 
 CONFIG_NAME = ".agentic-repo.toml"
 LOCK_NAME = ".agentic-repo.lock.json"
+
+# This allowlist is code-owned. The checkout lock may describe prior generated
+# state, but it is never trusted to establish ownership of an arbitrary path.
+TRUSTED_GENERATED_PATHS = frozenset(
+    {
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".github/copilot-instructions.md",
+        ".github/pull_request_template.md",
+        "docs/agent-playbook.md",
+        "docs/roadmap-authoring.md",
+        "docs/re/README.md",
+        "docs/experiments/README.md",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -62,8 +76,12 @@ def inspect_repository(root: Path) -> dict:
     return {"root": str(root.resolve()), "signals": known, "extensions": dict(sorted(extensions.items()))}
 
 
-def _content_hash(content: str) -> str:
-    return sha256(content.encode("utf-8")).hexdigest()
+def _validate_generated_manifest_paths(generated: dict[str, str]) -> None:
+    untrusted = sorted(set(generated) - TRUSTED_GENERATED_PATHS)
+    if untrusted:
+        raise AgenticRepoError(
+            f"previous generated manifest contains untrusted path(s): {', '.join(untrusted)}"
+        )
 
 
 def _load_previous_generated(root: Path) -> dict[str, str]:
@@ -79,14 +97,15 @@ def _load_previous_generated(root: Path) -> dict[str, str]:
         isinstance(relative, str) and isinstance(digest, str) for relative, digest in generated.items()
     ):
         raise AgenticRepoError(f"invalid previous generated manifest: {LOCK_NAME}")
-    return dict(generated)
+    result = dict(generated)
+    _validate_generated_manifest_paths(result)
+    return result
 
 
-def _is_managed(relative: str, current: str, previous_generated: dict[str, str]) -> bool:
-    if relative == LOCK_NAME or GENERATED_MARKER in current:
+def _is_managed(relative: str, current: str) -> bool:
+    if relative == LOCK_NAME:
         return True
-    previous_hash = previous_generated.get(relative)
-    return previous_hash is not None and _content_hash(current) == previous_hash
+    return relative in TRUSTED_GENERATED_PATHS and GENERATED_MARKER in current
 
 
 def _preflight_generated(
@@ -97,6 +116,12 @@ def _preflight_generated(
     upgrade: bool,
     previous_generated: dict[str, str],
 ) -> tuple[list[_WritePlan], list[_DeletePlan]]:
+    unexpected_outputs = sorted(set(generated) - TRUSTED_GENERATED_PATHS - {LOCK_NAME})
+    if unexpected_outputs:
+        raise AgenticRepoError(
+            f"renderer produced untrusted output path(s): {', '.join(unexpected_outputs)}"
+        )
+
     writes: list[_WritePlan] = []
     for relative, content in generated.items():
         path = validate_output_path(root, relative)
@@ -104,7 +129,7 @@ def _preflight_generated(
             current = path.read_text(encoding="utf-8")
             if current == content:
                 continue
-            managed = _is_managed(relative, current, previous_generated)
+            managed = _is_managed(relative, current)
             if not force and not (upgrade and managed):
                 raise AgenticRepoError(
                     f"refusing to overwrite unmanaged or drifted file: {relative}; "
@@ -120,7 +145,7 @@ def _preflight_generated(
             if not path.exists():
                 continue
             current = path.read_text(encoding="utf-8")
-            if not _is_managed(relative, current, previous_generated):
+            if not _is_managed(relative, current):
                 raise AgenticRepoError(f"refusing to remove unmanaged obsolete generated file: {relative}")
             deletes.append(_DeletePlan(relative=relative, path=path))
     return writes, deletes
