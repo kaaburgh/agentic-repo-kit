@@ -174,9 +174,31 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** `agentic_repo_kit/profiles/blind-research/`, README, Ascendancy example + local gate fragment, focused tests, package version
 - **Estimated scope:** Small/Medium
 
+### ARK9 — Add structural roadmap and evidence-CI robustness checks
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Core tooling / validation
+- **Depends on:** ARK8
+- **Problem / question:** Which roadmap and CI invariants have become stable enough through Ascendancy and BB dogfood to validate mechanically without pretending that semantic dependency correctness or target evidence can be inferred by the CLI?
+- **Known evidence:** Both dogfood repositories now use durable ID-bearing dependency roadmaps, but with two legitimate Markdown shapes (`## ID — ...` plus standalone `Status` in Ascendancy and `### ID — ...` plus compact `Status / priority / execution` in BB). Ascendancy review also exposed that an evidence-producing regression can become falsely reassuring if path filters omit a shared producer/parser/schema/manifest/config dependency.
+- **Implementation evidence:** This branch adds a dependency-free Markdown roadmap parser/validator integrated into `agentic-repo check`, validates unique IDs, required status/dependency semantics, dependency references and DAG structure only after structured items exist, preserves milestone-only pre-normalization compatibility, accepts both established dogfood item/field forms and common exact-ID Markdown wrappers, and documents the semantic boundary. Core policy/playbook/PR guidance now requires evidence-producing CI trigger/filter coverage of all material producer dependencies and prefers the real clean-checkout entry point when acceptance depends on it. Focused tests cover graph failures plus the two dogfood presentation variants. Tool/package version is 0.1.5 while `kit_version = 1` remains unchanged.
+- **Validation / acceptance:**
+  - milestone-only roadmaps remain valid before semantic normalization;
+  - normalized item headings at the established `##`/`###` levels are recognized without treating nested prose headings as items;
+  - standalone `Status` and compact `Status / priority / execution` both satisfy the stable status invariant;
+  - duplicate IDs/fields, missing status/dependency fields, malformed/unknown/self dependencies, and dependency cycles are reported deterministically;
+  - `agentic-repo check` integrates structural validation without claiming semantic readiness/root-cause correctness;
+  - normalization guidance requires a post-edit `agentic-repo check`;
+  - core agent/playbook/PR policy requires evidence-producing selective CI triggers to cover material producer/parser/schema/manifest/config dependencies;
+  - generated dogfood contract/lock are reconciled and package version advances without a config/lock format break;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI;
+  - review verifies the validator against the established Ascendancy and BB roadmap shapes before merge.
+- **Artifacts / docs:** `agentic_repo_kit/roadmap.py`, `agentic_repo_kit/operations.py`, core policy/playbook/PR fragments, roadmap-authoring/normalization guidance, README, generated dogfood files, focused tests, package version
+- **Estimated scope:** Medium
+
 ## Later
 
 - Support safe adoption of repositories that already have hand-written `AGENTS.md`/PR templates instead of requiring an explicit migration step.
 - Define versioned profile compatibility/migrations when kit format 2 is needed.
 - Decide whether semantic roadmap normalization should remain an agent skill packet or gain optional model-provider integration; do not add an LLM dependency without evidence that it improves the workflow.
-- Add richer structural roadmap validation only after dogfood demonstrates stable syntax worth validating mechanically.
