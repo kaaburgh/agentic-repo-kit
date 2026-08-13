@@ -1,5 +1,9 @@
 ### Reverse-engineering evidence
 
 - [ ] Established findings name evidence class and target/environment provenance.
+- [ ] Validation or corroboration is independent of the derived mapping/model being validated, or is explicitly labeled internal consistency only.
+- [ ] Serialized RE artifacts carry schema/input/producer provenance sufficient to reject stale or incompatible evidence.
+- [ ] Ambiguous matches or correlations remain explicit; no arbitrary tie-break is promoted to identity.
+- [ ] ABI/calling-convention claims used for argument interpretation or hook design are supported by observed target behavior where practical.
 - [ ] Negative results that prevent repeated dead ends are durable.
 - [ ] Runtime behavior is not claimed from static or synthetic evidence alone.
