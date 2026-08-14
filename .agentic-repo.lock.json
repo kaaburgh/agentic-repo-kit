@@ -10,7 +10,7 @@
   "generated": {
     ".github/copilot-instructions.md": "6fe72eca1eab8a997562d448c54a6bb8d4f7726186a07dfc6d328022a9b03bf2",
     ".github/pull_request_template.md": "36bb3b090dd54470c0b6ef13e67f88f6a942e9771ba23ef332bbfb5ea1bac520",
-    ".github/workflows/agentic-repo-check.yml": "34c00c72d27517dd5f10a62d7db0ff41822f80ad4f314a6b066d26dc5778ad56",
+    ".github/workflows/agentic-repo-check.yml": "8e23cff9e26e4b882d6986111605d7981bf3f325d38acc56257ad3f5374106c5",
     "AGENTS.md": "a98b4d1ec24543b4bf4841316a3381807795432746a2cf3904ef07feb679a7a5",
     "CLAUDE.md": "e68ff4b91505b9ca79f6f6656439c0c73a3448581f92407f25ee20aba9320088",
     "docs/agent-playbook.md": "a5978a89167d01c3ca8a71815c5c440008aacdb6c39bbd35f73ad4bbadc5e43c",
