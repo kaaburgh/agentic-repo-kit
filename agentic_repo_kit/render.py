@@ -8,6 +8,7 @@ from pathlib import Path
 
 from . import __version__
 from .config import RepositoryConfig
+from .distribution import distribution_identity
 from .errors import AgenticRepoError
 from .paths import confined_repo_path
 from .profiles import load_fragment
@@ -81,11 +82,12 @@ def render_generated_files(config: RepositoryConfig, root: Path) -> dict[str, st
 
     hashes = {path: sha256(content.encode("utf-8")).hexdigest() for path, content in sorted(generated.items())}
     lock = {
-        "format": 1,
+        "format": 2,
         "tool_version": __version__,
         "kit_version": config.kit_version,
         "project": asdict(config.project),
         "profiles": list(config.profiles),
+        "distribution": distribution_identity(),
         "generated": hashes,
     }
     generated[".agentic-repo.lock.json"] = json.dumps(lock, indent=2, sort_keys=True) + "\n"
