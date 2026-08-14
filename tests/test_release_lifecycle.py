@@ -38,6 +38,7 @@ class ReleaseLifecycleTests(unittest.TestCase):
         self.assertIn("workflow_dispatch target_sha must be an exact 40-character lowercase commit SHA", workflow)
         self.assertIn("git merge-base --is-ancestor", workflow)
         self.assertIn('git checkout --detach "$TARGET_SHA"', workflow)
+        self.assertIn("recover it with workflow_dispatch and the exact version-owning target_sha", workflow)
         self.assertIn("existing tag $TAG points to", workflow)
         self.assertIn("assets_complete", workflow)
         self.assertIn("gh release download", workflow)
@@ -54,12 +55,7 @@ class ReleaseLifecycleTests(unittest.TestCase):
         self.assertIn("gh release upload", workflow)
         self.assertIn("--clobber", workflow)
         self.assertIn('--target "$RELEASE_SHA"', workflow)
-
-    def test_ark12_one_time_recovery_target_is_explicit_until_release_exists(self) -> None:
-        workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
-        self.assertIn('version" == "0.1.8', workflow)
-        self.assertIn("f95068f36c839cc2df21cea3067674b3f7679c9a", workflow)
-        self.assertIn("Remove this fallback after v0.1.8 is verified", workflow)
+        self.assertNotIn("f95068f36c839cc2df21cea3067674b3f7679c9a", workflow)
 
 
 if __name__ == "__main__":
