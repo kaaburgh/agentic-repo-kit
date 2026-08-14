@@ -24,6 +24,7 @@ TRUSTED_GENERATED_PATHS = frozenset(
         "CLAUDE.md",
         ".github/copilot-instructions.md",
         ".github/pull_request_template.md",
+        ".github/workflows/agentic-repo-check.yml",
         "docs/agent-playbook.md",
         "docs/roadmap-authoring.md",
         "docs/re/README.md",
