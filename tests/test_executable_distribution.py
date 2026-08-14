@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-from agentic_repo_kit.distribution import distribution_identity
+from agentic_repo_kit.distribution import artifact_name, distribution_identity
 from scripts.build_pyz import build_pyz
 
 
@@ -55,7 +55,7 @@ class ExecutableDistributionTests(unittest.TestCase):
             lock = json.loads((repo / ".agentic-repo.lock.json").read_text(encoding="utf-8"))
             self.assertEqual(2, lock["format"])
             self.assertEqual(digest, lock["distribution"]["sha256"])
-            self.assertEqual("agentic-repo-kit-0.1.8.pyz", lock["distribution"]["artifact"])
+            self.assertEqual(artifact_name(), lock["distribution"]["artifact"])
 
             check = subprocess.run(
                 [sys.executable, str(artifact), "check", str(repo)],
