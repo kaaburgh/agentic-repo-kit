@@ -128,7 +128,23 @@ jobs:
               && grep -qx "agentic-repo-kit-$version.tar.gz" <<<"$asset_names" \
               && grep -qx "agentic-repo-kit-$version.zip" <<<"$asset_names" \
               && grep -qx 'SHA256SUMS' <<<"$asset_names"; then
-              assets_complete=true
+              rm -rf release-state
+              mkdir -p release-state
+              gh release download "$TAG" \
+                --pattern "agentic-repo-kit-$version.pyz" \
+                --dir release-state
+              expected_pyz_sha="$(python - <<'PY'
+              import json
+              from pathlib import Path
+              print(json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["distribution"]["sha256"])
+              PY
+              )"
+              actual_pyz_sha="$(sha256sum "release-state/agentic-repo-kit-$version.pyz" | awk '{print $1}')"
+              if [[ "$actual_pyz_sha" == "$expected_pyz_sha" ]]; then
+                assets_complete=true
+              else
+                echo "existing executable asset digest mismatch: release=$actual_pyz_sha lock=$expected_pyz_sha; repairing release assets" >&2
+              fi
             fi
           fi
 
