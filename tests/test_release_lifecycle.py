@@ -24,16 +24,19 @@ class ReleaseLifecycleTests(unittest.TestCase):
         self.assertEqual(artifact_name(), lock["distribution"]["artifact"])
         self.assertEqual(release_tag(), lock["distribution"]["release"])
 
-    def test_release_workflow_recovers_exact_version_commit_and_is_offline_friendly(self) -> None:
+    def test_release_workflow_preserves_exact_version_target_and_supports_explicit_recovery(self) -> None:
         workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
         self.assertIn("branches: [main]", workflow)
-        self.assertNotIn("workflow_dispatch:", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("target_sha:", workflow)
         self.assertIn("contents: write", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
-        self.assertIn("Resolve immutable release target", workflow)
-        self.assertIn("scripts/resolve_release_target.py", workflow)
-        self.assertIn('--main-ref origin/main', workflow)
+        self.assertIn("agentic_repo_kit/__init__.py", workflow)
+        self.assertIn("pyproject.toml", workflow)
+        self.assertIn('target_sha="$CURRENT_SHA"', workflow)
+        self.assertIn("workflow_dispatch target_sha must be an exact 40-character lowercase commit SHA", workflow)
+        self.assertIn("git merge-base --is-ancestor", workflow)
         self.assertIn('git checkout --detach "$TARGET_SHA"', workflow)
         self.assertIn("existing tag $TAG points to", workflow)
         self.assertIn("assets_complete", workflow)
@@ -51,6 +54,12 @@ class ReleaseLifecycleTests(unittest.TestCase):
         self.assertIn("gh release upload", workflow)
         self.assertIn("--clobber", workflow)
         self.assertIn('--target "$RELEASE_SHA"', workflow)
+
+    def test_ark12_one_time_recovery_target_is_explicit_until_release_exists(self) -> None:
+        workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        self.assertIn('version" == "0.1.8', workflow)
+        self.assertIn("f95068f36c839cc2df21cea3067674b3f7679c9a", workflow)
+        self.assertIn("Remove this fallback after v0.1.8 is verified", workflow)
 
 
 if __name__ == "__main__":
