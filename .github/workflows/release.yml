@@ -29,35 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           version="$(python -c 'from agentic_repo_kit import __version__; print(__version__)')"
-          tag="v$version"
-          target_sha=""
-
-          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-            target_sha="$(git rev-list -n 1 "$tag")"
-          else
-            candidate=""
-            while read -r sha; do
-              candidate_version="$(git show "$sha:agentic_repo_kit/__init__.py" | python -c 'import re, sys; text=sys.stdin.read(); match=re.search(r"__version__\s*=\s*[\"'"'"']([^\"'"'"']+)", text); print(match.group(1) if match else "")')"
-              if [[ "$candidate_version" == "$version" ]]; then
-                candidate="$sha"
-              elif [[ -n "$candidate" ]]; then
-                break
-              fi
-            done < <(git log --format=%H -- agentic_repo_kit/__init__.py)
-            target_sha="$candidate"
-          fi
-
-          if [[ -z "$target_sha" ]]; then
-            echo "cannot resolve the commit that introduced tool version $version" >&2
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor "$target_sha" origin/main; then
-            echo "release target $target_sha for $tag is not an ancestor of main" >&2
-            exit 1
-          fi
-
+          target_sha="$(python scripts/resolve_release_target.py --version "$version" --main-ref origin/main)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
           echo "target_sha=$target_sha" >> "$GITHUB_OUTPUT"
 
       - name: Check out immutable release target
