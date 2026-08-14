@@ -1,5 +1,12 @@
 {
-  "format": 1,
+  "distribution": {
+    "artifact": "agentic-repo-kit-0.1.8.pyz",
+    "release": "v0.1.8",
+    "repository": "kaaburgh/agentic-repo-kit",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "tool_version": "0.1.8"
+  },
+  "format": 2,
   "generated": {
     ".github/copilot-instructions.md": "6fe72eca1eab8a997562d448c54a6bb8d4f7726186a07dfc6d328022a9b03bf2",
     ".github/pull_request_template.md": "36bb3b090dd54470c0b6ef13e67f88f6a942e9771ba23ef332bbfb5ea1bac520",
@@ -17,5 +24,5 @@
     "name": "agentic-repo-kit",
     "roadmap": "ROADMAP.md"
   },
-  "tool_version": "0.1.7"
+  "tool_version": "0.1.8"
 }
