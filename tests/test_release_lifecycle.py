@@ -24,15 +24,17 @@ class ReleaseLifecycleTests(unittest.TestCase):
         self.assertEqual(artifact_name(), lock["distribution"]["artifact"])
         self.assertEqual(release_tag(), lock["distribution"]["release"])
 
-    def test_release_workflow_is_version_gated_and_offline_friendly(self) -> None:
+    def test_release_workflow_recovers_exact_version_commit_and_is_offline_friendly(self) -> None:
         workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
         self.assertIn("branches: [main]", workflow)
         self.assertNotIn("workflow_dispatch:", workflow)
         self.assertIn("contents: write", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
-        self.assertIn("agentic_repo_kit/__init__.py", workflow)
-        self.assertIn("pyproject.toml", workflow)
+        self.assertIn("Resolve immutable release target", workflow)
+        self.assertIn("git log --format=%H -- agentic_repo_kit/__init__.py", workflow)
+        self.assertIn("git merge-base --is-ancestor", workflow)
+        self.assertIn('git checkout --detach "$TARGET_SHA"', workflow)
         self.assertIn("existing tag $TAG points to", workflow)
         self.assertIn("assets_complete", workflow)
         self.assertIn("gh release download", workflow)
@@ -48,7 +50,7 @@ class ReleaseLifecycleTests(unittest.TestCase):
         self.assertIn("gh release create", workflow)
         self.assertIn("gh release upload", workflow)
         self.assertIn("--clobber", workflow)
-        self.assertIn('--target "$CURRENT_SHA"', workflow)
+        self.assertIn('--target "$RELEASE_SHA"', workflow)
 
 
 if __name__ == "__main__":
