@@ -69,10 +69,6 @@ jobs:
               if grep -qx 'agentic_repo_kit/__init__.py' <<<"$changed" \
                 && grep -qx 'pyproject.toml' <<<"$changed"; then
                 target_sha="$CURRENT_SHA"
-              elif [[ "$version" == "0.1.8" ]]; then
-                # One-time recovery for ARK12: Release run #4 failed before v0.1.8
-                # could create its tag. Remove this fallback after v0.1.8 is verified.
-                target_sha="f95068f36c839cc2df21cea3067674b3f7679c9a"
               else
                 echo "current version $version has no tag and this push did not introduce the version" >&2
                 echo "recover it with workflow_dispatch and the exact version-owning target_sha" >&2
