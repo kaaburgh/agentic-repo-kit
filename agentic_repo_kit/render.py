@@ -72,6 +72,7 @@ def render_generated_files(config: RepositoryConfig, root: Path) -> dict[str, st
         "docs/agent-playbook.md": _replace(_template("agent-playbook.md.tmpl"), common),
         "docs/roadmap-authoring.md": _replace(_template("roadmap-authoring.md.tmpl"), common),
         ".github/pull_request_template.md": _replace(_template("pull_request_template.md.tmpl"), common),
+        ".github/workflows/agentic-repo-check.yml": _replace(_template("agentic-repo-check.yml.tmpl"), common),
         "CLAUDE.md": _replace(_template("CLAUDE.md.tmpl"), common),
         ".github/copilot-instructions.md": _replace(_template("copilot-instructions.md.tmpl"), common),
     }
