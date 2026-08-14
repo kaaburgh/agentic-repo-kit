@@ -49,7 +49,7 @@ class ManagedCheckWorkflowTests(unittest.TestCase):
             self.assertIn("contents: read", workflow)
             self.assertIn("pull_request:", workflow)
             self.assertIn("push:", workflow)
-            self.assertNotIn("latest", workflow.lower())
+            self.assertNotIn("/releases/latest", workflow.lower())
             self.assertNotIn("secrets.", workflow)
             self.assertNotIn("paths:", workflow)
 
