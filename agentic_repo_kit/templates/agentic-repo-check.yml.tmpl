@@ -71,20 +71,30 @@ jobs:
               + quote(artifact, safe="")
           )
           print(f"url={url}")
+          print(f"repository={repository}")
           print(f"artifact={artifact}")
           print(f"sha256={digest}")
           PY
 
-      - name: Download pinned kit artifact
+      - name: Acquire pinned kit artifact
         shell: bash
         env:
           KIT_URL: ${{ steps.kit.outputs.url }}
+          KIT_REPOSITORY: ${{ steps.kit.outputs.repository }}
           KIT_ARTIFACT: ${{ steps.kit.outputs.artifact }}
         run: |
           set -euo pipefail
           path="$RUNNER_TEMP/$KIT_ARTIFACT"
-          curl --fail --location --proto '=https' --tlsv1.2 --retry 3 \
-            --output "$path" "$KIT_URL"
+          if curl --fail --location --proto '=https' --tlsv1.2 --retry 3 \
+            --output "$path" "$KIT_URL"; then
+            :
+          elif [[ "$KIT_REPOSITORY" == "$GITHUB_REPOSITORY" && -f scripts/build_pyz.py ]]; then
+            echo "release artifact unavailable in distribution repository; building deterministic self-host artifact"
+            python scripts/build_pyz.py --output "$path"
+          else
+            echo "cannot acquire pinned agentic-repo-kit artifact: $KIT_URL" >&2
+            exit 1
+          fi
           echo "KIT_PATH=$path" >> "$GITHUB_ENV"
 
       - name: Verify pinned kit artifact
