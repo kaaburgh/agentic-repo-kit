@@ -14,7 +14,7 @@ Generated target repositories remain self-contained as agent policy: agents read
 
 The first MVP is intentionally small and dependency-free at runtime. It implements deterministic repository inspection/rendering/validation plus a semantic roadmap-normalization packet intended to be executed by a capable coding agent. It is not an LLM framework and does not pretend to mechanically validate whether a reverse-engineering hypothesis is true.
 
-See [`docs/design.md`](./docs/design.md) for the architecture boundary, [`docs/profile-authoring.md`](./docs/profile-authoring.md) for extending profiles, and [`ROADMAP.md`](./ROADMAP.md) for dogfood and follow-up work.
+See [`docs/design.md`](./docs/design.md) for the architecture boundary, [`docs/profile-authoring.md`](./docs/profile-authoring.md) for extending profiles, [`docs/distribution.md`](./docs/distribution.md) for executable distribution semantics, and [`ROADMAP.md`](./ROADMAP.md) for dogfood and follow-up work.
 
 ## Install and run from a checkout
 
@@ -70,24 +70,29 @@ playbook_files = ["docs/agent-playbook.local.md"]
 pr_files = ["docs/pr-policy.local.md"]
 ```
 
-Local fragment paths must remain inside the repository and may not traverse symlinks. The lock file records tool/config/profile provenance and SHA-256 hashes for generated files. `check` re-renders expected content, detects drift/missing outputs, confirms the configured roadmap exists, checks relative Markdown links, and—once the roadmap uses normalized ID-bearing item headings—validates unique IDs, required status/dependency fields, dependency references, and an acyclic dependency graph. Milestone-only planning documents remain valid until the semantic normalization pass creates structured items.
+Local fragment paths must remain inside the repository and may not traverse symlinks. Lock format 2 records tool/config/profile provenance, SHA-256 hashes for generated files, and the exact executable distribution coordinates/digest. `check` re-renders expected content, detects drift/missing outputs, confirms the configured roadmap exists, checks relative Markdown links, and—once the roadmap uses normalized ID-bearing item headings—validates unique IDs, required status/dependency fields, dependency references, and an acyclic dependency graph. Milestone-only planning documents remain valid until the semantic normalization pass creates structured items.
 
 ## Releases and constrained/offline environments
 
-Every tool/package version merged to `main` is published as a GitHub Release tagged `v<version>`. The release workflow attaches deterministic `agentic-repo-kit-<version>.tar.gz` and `.zip` source archives plus `SHA256SUMS`. Release identity is fail-closed: package metadata, `pyproject.toml`, and this repository's lock must agree on the version, and an existing tag may not point at a different commit.
+Every tool/package version merged to `main` is published as a GitHub Release tagged `v<version>`. The preferred consumer artifact is deterministic `agentic-repo-kit-<version>.pyz`; releases also retain deterministic `.tar.gz` and `.zip` source archives plus `SHA256SUMS`. Release identity is fail-closed: package metadata, `pyproject.toml`, the dogfood lock, and the rebuilt `.pyz` digest must agree, and an existing tag may not point at a different commit.
 
-The release archives contain the complete checkout and need no package-registry access. After extracting an archive, either install it locally or run directly from the extracted source tree:
+Consumer repositories pin `repository`, `release`, `artifact`, and `sha256` in `.agentic-repo.lock.json`. Normal CI/offline validation should trust that committed digest rather than `latest` or a checksum fetched beside an untrusted artifact. Once the `.pyz` is present, no package-registry access is required:
 
 ```bash
-# no registry/network access required once the archive is present
-PYTHONPATH=/opt/agentic-repo-kit-0.1.6 \
-  python -m agentic_repo_kit check /work/target-repository
-
-PYTHONPATH=/opt/agentic-repo-kit-0.1.6 \
-  python -m agentic_repo_kit upgrade /work/target-repository
+python /opt/agentic-repo-kit-0.1.8.pyz check /work/target-repository
+python /opt/agentic-repo-kit-0.1.8.pyz upgrade /work/target-repository
 ```
 
-For a normal CI drift check, pin the executable kit to the target repository's `.agentic-repo.lock.json` `tool_version`. To intentionally upgrade a target repository, run `upgrade` with the newer selected release and commit the resulting managed diff/lock change. A generated target contract does **not** embed a copy of the checker/renderer; the local generated files are self-contained policy for agents, while deterministic validation is performed by the versioned kit executable.
+If an environment has no network path, an operator can provide only the exact `.pyz` named in the lock; the consumer verifies its SHA-256 against the lock before executing it. `SHA256SUMS` remains useful as release-level provenance/cross-check, while the consumer lock is the trust anchor. See [`docs/distribution.md`](./docs/distribution.md) for the full contract.
+
+The source archives contain the complete checkout and remain useful for inspection/development or environments that intentionally run from extracted source:
+
+```bash
+PYTHONPATH=/opt/agentic-repo-kit-0.1.8 \
+  python -m agentic_repo_kit check /work/target-repository
+```
+
+To intentionally upgrade a target repository, run `upgrade` with the newer selected release and commit the resulting managed diff/lock change. A generated target contract does **not** embed a copy of the checker/renderer; the local generated files are self-contained policy for agents, while deterministic validation is performed by the versioned executable distribution.
 
 ## Commands
 
