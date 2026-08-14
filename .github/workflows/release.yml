@@ -31,17 +31,39 @@ jobs:
           version="$(python - <<'PY'
           import json
           from pathlib import Path
+          import re
           import tomllib
 
           from agentic_repo_kit import __version__
+          from agentic_repo_kit.distribution import artifact_name, release_tag
 
           pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
           project_version = pyproject["project"]["version"]
-          lock_version = json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["tool_version"]
+          lock = json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))
+          lock_version = lock["tool_version"]
           if not (__version__ == project_version == lock_version):
               raise SystemExit(
                   f"version mismatch: package={__version__} pyproject={project_version} lock={lock_version}"
               )
+          if lock.get("format") != 2:
+              raise SystemExit(f"release-owning lock must use format 2, got {lock.get('format')!r}")
+          distribution = lock.get("distribution")
+          expected = {
+              "repository": "kaaburgh/agentic-repo-kit",
+              "release": release_tag(),
+              "artifact": artifact_name(),
+              "tool_version": __version__,
+          }
+          if not isinstance(distribution, dict):
+              raise SystemExit("missing lock distribution identity")
+          for key, value in expected.items():
+              if distribution.get(key) != value:
+                  raise SystemExit(
+                      f"distribution mismatch for {key}: expected {value!r}, got {distribution.get(key)!r}"
+                  )
+          digest = distribution.get("sha256")
+          if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+              raise SystemExit("invalid lock distribution sha256")
           print(__version__)
           PY
           )"
@@ -102,7 +124,8 @@ jobs:
           if [[ "$release_exists" == true ]]; then
             asset_names="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
             version='${{ steps.identity.outputs.version }}'
-            if grep -qx "agentic-repo-kit-$version.tar.gz" <<<"$asset_names" \
+            if grep -qx "agentic-repo-kit-$version.pyz" <<<"$asset_names" \
+              && grep -qx "agentic-repo-kit-$version.tar.gz" <<<"$asset_names" \
               && grep -qx "agentic-repo-kit-$version.zip" <<<"$asset_names" \
               && grep -qx 'SHA256SUMS' <<<"$asset_names"; then
               assets_complete=true
@@ -112,7 +135,7 @@ jobs:
           echo "release_exists=$release_exists" >> "$GITHUB_OUTPUT"
           echo "assets_complete=$assets_complete" >> "$GITHUB_OUTPUT"
 
-      - name: Build deterministic source archives
+      - name: Build and verify deterministic release artifacts
         if: steps.gate.outputs.publish == 'true' && steps.state.outputs.assets_complete != 'true'
         shell: bash
         env:
@@ -121,12 +144,29 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
+          pyz="dist/agentic-repo-kit-$VERSION.pyz"
+          actual_pyz_sha="$(python scripts/build_pyz.py --output "$pyz")"
+          expected_pyz_sha="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["distribution"]["sha256"])
+          PY
+          )"
+          if [[ "$actual_pyz_sha" != "$expected_pyz_sha" ]]; then
+            echo "executable artifact digest mismatch: built=$actual_pyz_sha lock=$expected_pyz_sha" >&2
+            exit 1
+          fi
+
           prefix="agentic-repo-kit-$VERSION/"
           git archive --format=tar --prefix="$prefix" "$CURRENT_SHA" | gzip -n > "dist/agentic-repo-kit-$VERSION.tar.gz"
           git archive --format=zip --prefix="$prefix" -o "dist/agentic-repo-kit-$VERSION.zip" "$CURRENT_SHA"
           (
             cd dist
-            sha256sum "agentic-repo-kit-$VERSION.tar.gz" "agentic-repo-kit-$VERSION.zip" > SHA256SUMS
+            sha256sum \
+              "agentic-repo-kit-$VERSION.pyz" \
+              "agentic-repo-kit-$VERSION.tar.gz" \
+              "agentic-repo-kit-$VERSION.zip" \
+              > SHA256SUMS
           )
 
       - name: Create GitHub Release
@@ -140,6 +180,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release create "$TAG" \
+            "dist/agentic-repo-kit-$VERSION.pyz" \
             "dist/agentic-repo-kit-$VERSION.tar.gz" \
             "dist/agentic-repo-kit-$VERSION.zip" \
             "dist/SHA256SUMS" \
@@ -157,6 +198,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" \
+            "dist/agentic-repo-kit-$VERSION.pyz" \
             "dist/agentic-repo-kit-$VERSION.tar.gz" \
             "dist/agentic-repo-kit-$VERSION.zip" \
             "dist/SHA256SUMS" \
