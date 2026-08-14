@@ -23,9 +23,58 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Resolve immutable release target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python -c 'from agentic_repo_kit import __version__; print(__version__)')"
+          tag="v$version"
+          target_sha=""
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            target_sha="$(git rev-list -n 1 "$tag")"
+          else
+            candidate=""
+            while read -r sha; do
+              candidate_version="$(git show "$sha:agentic_repo_kit/__init__.py" | python -c 'import re, sys; text=sys.stdin.read(); match=re.search(r"__version__\s*=\s*[\"'"'"']([^\"'"'"']+)", text); print(match.group(1) if match else "")')"
+              if [[ "$candidate_version" == "$version" ]]; then
+                candidate="$sha"
+              elif [[ -n "$candidate" ]]; then
+                break
+              fi
+            done < <(git log --format=%H -- agentic_repo_kit/__init__.py)
+            target_sha="$candidate"
+          fi
+
+          if [[ -z "$target_sha" ]]; then
+            echo "cannot resolve the commit that introduced tool version $version" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$target_sha" origin/main; then
+            echo "release target $target_sha for $tag is not an ancestor of main" >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$target_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Check out immutable release target
+        shell: bash
+        env:
+          TARGET_SHA: ${{ steps.target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$TARGET_SHA"
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+
       - name: Resolve release identity
         id: identity
         shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.target.outputs.version }}
+          EXPECTED_TAG: ${{ steps.target.outputs.tag }}
         run: |
           set -euo pipefail
           version="$(python - <<'PY'
@@ -67,37 +116,18 @@ jobs:
           print(__version__)
           PY
           )"
+          test "$version" = "$EXPECTED_VERSION"
+          test "v$version" = "$EXPECTED_TAG"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
-      - name: Decide whether this push owns a version release
-        id: gate
-        shell: bash
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-          CURRENT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
-            changed="$(git show --format= --name-only "$CURRENT_SHA")"
-          else
-            changed="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA")"
-          fi
-
-          if grep -qx 'agentic_repo_kit/__init__.py' <<<"$changed" && grep -qx 'pyproject.toml' <<<"$changed"; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Verify release/tag state
-        if: steps.gate.outputs.publish == 'true'
         id: state
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.identity.outputs.tag }}
-          CURRENT_SHA: ${{ github.sha }}
+          RELEASE_SHA: ${{ steps.target.outputs.target_sha }}
         run: |
           set -euo pipefail
           release_exists=false
@@ -109,8 +139,8 @@ jobs:
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             tag_exists=true
             tag_sha="$(git rev-list -n 1 "$TAG")"
-            if [[ "$tag_sha" != "$CURRENT_SHA" ]]; then
-              echo "existing tag $TAG points to $tag_sha, expected $CURRENT_SHA" >&2
+            if [[ "$tag_sha" != "$RELEASE_SHA" ]]; then
+              echo "existing tag $TAG points to $tag_sha, expected $RELEASE_SHA" >&2
               exit 1
             fi
           fi
@@ -133,12 +163,7 @@ jobs:
               gh release download "$TAG" \
                 --pattern "agentic-repo-kit-$version.pyz" \
                 --dir release-state
-              expected_pyz_sha="$(python - <<'PY'
-              import json
-              from pathlib import Path
-              print(json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["distribution"]["sha256"])
-              PY
-              )"
+              expected_pyz_sha="$(python -c 'import json; from pathlib import Path; print(json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["distribution"]["sha256"])')"
               actual_pyz_sha="$(sha256sum "release-state/agentic-repo-kit-$version.pyz" | awk '{print $1}')"
               if [[ "$actual_pyz_sha" == "$expected_pyz_sha" ]]; then
                 assets_complete=true
@@ -152,30 +177,25 @@ jobs:
           echo "assets_complete=$assets_complete" >> "$GITHUB_OUTPUT"
 
       - name: Build and verify deterministic release artifacts
-        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.assets_complete != 'true'
+        if: steps.state.outputs.assets_complete != 'true'
         shell: bash
         env:
           VERSION: ${{ steps.identity.outputs.version }}
-          CURRENT_SHA: ${{ github.sha }}
+          RELEASE_SHA: ${{ steps.target.outputs.target_sha }}
         run: |
           set -euo pipefail
           mkdir -p dist
           pyz="dist/agentic-repo-kit-$VERSION.pyz"
           actual_pyz_sha="$(python scripts/build_pyz.py --output "$pyz")"
-          expected_pyz_sha="$(python - <<'PY'
-          import json
-          from pathlib import Path
-          print(json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["distribution"]["sha256"])
-          PY
-          )"
+          expected_pyz_sha="$(python -c 'import json; from pathlib import Path; print(json.loads(Path(".agentic-repo.lock.json").read_text(encoding="utf-8"))["distribution"]["sha256"])')"
           if [[ "$actual_pyz_sha" != "$expected_pyz_sha" ]]; then
             echo "executable artifact digest mismatch: built=$actual_pyz_sha lock=$expected_pyz_sha" >&2
             exit 1
           fi
 
           prefix="agentic-repo-kit-$VERSION/"
-          git archive --format=tar --prefix="$prefix" "$CURRENT_SHA" | gzip -n > "dist/agentic-repo-kit-$VERSION.tar.gz"
-          git archive --format=zip --prefix="$prefix" -o "dist/agentic-repo-kit-$VERSION.zip" "$CURRENT_SHA"
+          git archive --format=tar --prefix="$prefix" "$RELEASE_SHA" | gzip -n > "dist/agentic-repo-kit-$VERSION.tar.gz"
+          git archive --format=zip --prefix="$prefix" -o "dist/agentic-repo-kit-$VERSION.zip" "$RELEASE_SHA"
           (
             cd dist
             sha256sum \
@@ -186,13 +206,13 @@ jobs:
           )
 
       - name: Create GitHub Release
-        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.release_exists == 'false'
+        if: steps.state.outputs.release_exists == 'false'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.identity.outputs.tag }}
           VERSION: ${{ steps.identity.outputs.version }}
-          CURRENT_SHA: ${{ github.sha }}
+          RELEASE_SHA: ${{ steps.target.outputs.target_sha }}
         run: |
           set -euo pipefail
           gh release create "$TAG" \
@@ -200,12 +220,12 @@ jobs:
             "dist/agentic-repo-kit-$VERSION.tar.gz" \
             "dist/agentic-repo-kit-$VERSION.zip" \
             "dist/SHA256SUMS" \
-            --target "$CURRENT_SHA" \
+            --target "$RELEASE_SHA" \
             --title "agentic-repo-kit $VERSION" \
             --generate-notes
 
-      - name: Repair missing release assets
-        if: steps.gate.outputs.publish == 'true' && steps.state.outputs.release_exists == 'true' && steps.state.outputs.assets_complete != 'true'
+      - name: Repair missing or invalid release assets
+        if: steps.state.outputs.release_exists == 'true' && steps.state.outputs.assets_complete != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
