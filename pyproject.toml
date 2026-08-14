@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-repo-kit"
-version = "0.1.7"
+version = "0.1.8"
 description = "Versioned repository policy compiler for agent-driven engineering repositories"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,6 +19,7 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 agentic_repo_kit = [
+  "distribution.json",
   "templates/*.tmpl",
   "profiles/*/*.md",
   "skills/*.md",
