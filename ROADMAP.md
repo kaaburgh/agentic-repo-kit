@@ -248,7 +248,53 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** `agentic_repo_kit/adoption.py`, adoption CLI, `docs/adoption.md`, safe-adoption tests, Ascendancy-shaped fixture, package version, GitHub Release `v0.1.7`
 - **Estimated scope:** Medium
 
+### ARK12 — Publish a pinned executable distribution contract
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Distribution / constrained environments
+- **Depends on:** ARK11
+- **Problem / question:** Can every consumer repository pin one directly executable, reproducible kit artifact—including its acquisition coordinates and SHA-256—in the lock so online CI and offline operator handoff use the same trust anchor without vendoring the dependency?
+- **Known evidence:** BB upgrade to v0.1.7 exposed that source archives solve package-registry independence but consumer repositories still need prose to discover/acquire the checker, and private cross-repository release access would require extra credentials. The kit repository is now public, so a public pinned executable release can remove that secret surface while keeping the consumer lock as the trust anchor.
+- **Implementation evidence:** ARK12 introduces deterministic `agentic-repo-kit-<version>.pyz` builds, source/wheel distribution metadata, self-hashing identity when executing inside the zipapp, and lock format 2 with `repository`/`release`/`artifact`/`sha256`/`tool_version`. The committed digest metadata is deliberately excluded from the zipapp to avoid cryptographic self-reference. Release publication rebuilds the artifact and fails closed unless its SHA-256 equals the consumer/dogfood lock digest. Tool/package version is 0.1.8 while config `kit_version = 1` remains unchanged.
+- **Validation evidence:** Draft PR #12 CI run #58 built the deterministic zipapp and intentionally failed only the placeholder-digest assertion, revealing SHA-256 `7e44e7eb9b81dc3ca357ab98a4f6170bf900bea9673ea27ec831768e7acf5847`; the other 74 tests passed, including zipapp `bootstrap` followed by zipapp `check`. The digest was then committed to both distribution metadata and the dogfood lock. CI run #62 on the reconciled implementation passed the full suite and self-check.
+- **Remaining validation:** self-review and automated PR review must be reconciled; final-head CI must pass; after merge, the actual `v0.1.8` release must publish the `.pyz`, source archives, and `SHA256SUMS` at the exact merge commit before ARK12 is marked `Completed and verified`.
+- **Validation / acceptance:**
+  - deterministic `.pyz` builds are byte-identical across repeated builds from the same source tree;
+  - the executable runs `bootstrap`, `check`, `upgrade`, and other CLI commands with Python 3.11+ and no package-registry dependency;
+  - lock format 2 records exact public repository/release/artifact coordinates and SHA-256 together with tool/config/profile/generated provenance;
+  - `bootstrap`, `adopt`, and `upgrade` atomically emit those distribution coordinates as part of the lock;
+  - source/wheel mode and zipapp mode render the same distribution identity without embedding the digest metadata into the artifact it describes;
+  - the release workflow refuses publication if a rebuilt `.pyz` digest differs from the committed lock digest;
+  - offline handoff needs only the artifact because the expected digest is already committed in the consumer lock;
+  - `SHA256SUMS` remains a release-level cross-check, not the consumer trust anchor;
+  - focused tests, full unit tests, and `python -m agentic_repo_kit check .` pass;
+  - package/tool version advances to 0.1.8, lock format advances to 2, and config `kit_version = 1` remains stable.
+- **Artifacts / docs:** `scripts/build_pyz.py`, `agentic_repo_kit/distribution.py`, `agentic_repo_kit/distribution.json`, renderer/lock format 2, release workflow, `docs/distribution.md`, README, focused tests, package version
+- **Estimated scope:** Medium
+
+### ARK13 — Generate the repository contract check workflow
+
+- **Status:** Planned
+- **Priority:** High
+- **Category:** Core tooling / managed CI
+- **Depends on:** ARK12
+- **Problem / question:** Can the kit make its own deterministic contract validation a managed target-repository invariant rather than requiring every consumer to hand-author a GitHub Actions workflow?
+- **Known evidence:** BB now has a valid repo-kit contract but no GitHub Actions workflow; current kit detects `.github/workflows` but does not generate or own a contract-check workflow. Once ARK12 supplies a public pinned executable plus digest in lock, the generic workflow no longer needs cross-repository secrets.
+- **Proposed direction:** Generate a managed `.github/workflows/agentic-repo-check.yml` that reads the lock distribution coordinates, downloads exactly that public `.pyz`, verifies SHA-256 against the lock, and runs `check` on pull requests and pushes to the default branch. The workflow itself must become part of the trusted managed/lock surface and be delivered by ordinary `bootstrap`/`adopt`/`upgrade`.
+- **Validation / acceptance:**
+  - generated workflow uses only coordinates/digest from the committed lock and never resolves `latest`;
+  - public acquisition requires no cross-repository secret;
+  - SHA-256 is checked against `distribution.sha256` before execution;
+  - the workflow runs `python <artifact>.pyz check .` and fails on contract/roadmap drift;
+  - the workflow is a trusted generated path, participates in ownership/drift checking, and upgrades transactionally with other managed outputs;
+  - focused tests exercise rendered workflow semantics and upgrade from a pre-ARK13 lock;
+  - a BB dogfood upgrade receives the workflow through normal `agentic-repo upgrade` and produces a real passing Actions check;
+  - package/tool version advances while config `kit_version = 1` remains stable unless implementation evidence requires otherwise.
+- **Artifacts / docs:** workflow template, renderer/ownership allowlist, tests, docs, package version, BB dogfood upgrade
+- **Estimated scope:** Medium
+
 ## Later
 
-- Define versioned profile compatibility/migrations when kit format 2 is needed.
+- Define versioned config/profile compatibility migrations when `kit_version = 2` is needed.
 - Decide whether semantic roadmap normalization should remain an agent skill packet or gain optional model-provider integration; do not add an LLM dependency without evidence that it improves the workflow.
