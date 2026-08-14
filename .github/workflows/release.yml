@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Exact version-owning commit to recover
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -26,12 +32,59 @@ jobs:
       - name: Resolve immutable release target
         id: target
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+          DISPATCH_TARGET: ${{ inputs.target_sha }}
         run: |
           set -euo pipefail
-          version="$(python -c 'from agentic_repo_kit import __version__; print(__version__)')"
-          target_sha="$(python scripts/resolve_release_target.py --version "$version" --main-ref origin/main)"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ ! "$DISPATCH_TARGET" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "workflow_dispatch target_sha must be an exact 40-character lowercase commit SHA" >&2
+              exit 1
+            fi
+            if ! git cat-file -e "$DISPATCH_TARGET^{commit}" 2>/dev/null; then
+              echo "workflow_dispatch target $DISPATCH_TARGET is not a fetched commit" >&2
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$DISPATCH_TARGET" origin/main; then
+              echo "workflow_dispatch target $DISPATCH_TARGET is not an ancestor of main" >&2
+              exit 1
+            fi
+            target_sha="$DISPATCH_TARGET"
+          else
+            version="$(python -c 'from agentic_repo_kit import __version__; print(__version__)')"
+            tag="v$version"
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              target_sha="$(git rev-list -n 1 "$tag")"
+            else
+              if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
+                changed="$(git show --format= --name-only "$CURRENT_SHA")"
+              else
+                changed="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA")"
+              fi
+
+              if grep -qx 'agentic_repo_kit/__init__.py' <<<"$changed" \
+                && grep -qx 'pyproject.toml' <<<"$changed"; then
+                target_sha="$CURRENT_SHA"
+              elif [[ "$version" == "0.1.8" ]]; then
+                # One-time recovery for ARK12: Release run #4 failed before v0.1.8
+                # could create its tag. Remove this fallback after v0.1.8 is verified.
+                target_sha="f95068f36c839cc2df21cea3067674b3f7679c9a"
+              else
+                echo "current version $version has no tag and this push did not introduce the version" >&2
+                echo "recover it with workflow_dispatch and the exact version-owning target_sha" >&2
+                exit 1
+              fi
+            fi
+          fi
+
+          if ! git merge-base --is-ancestor "$target_sha" origin/main; then
+            echo "release target $target_sha is not an ancestor of main" >&2
+            exit 1
+          fi
           echo "target_sha=$target_sha" >> "$GITHUB_OUTPUT"
 
       - name: Check out immutable release target
@@ -46,9 +99,6 @@ jobs:
       - name: Resolve release identity
         id: identity
         shell: bash
-        env:
-          EXPECTED_VERSION: ${{ steps.target.outputs.version }}
-          EXPECTED_TAG: ${{ steps.target.outputs.tag }}
         run: |
           set -euo pipefail
           version="$(python - <<'PY'
@@ -90,8 +140,6 @@ jobs:
           print(__version__)
           PY
           )"
-          test "$version" = "$EXPECTED_VERSION"
-          test "v$version" = "$EXPECTED_TAG"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
