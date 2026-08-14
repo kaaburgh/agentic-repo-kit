@@ -5,7 +5,6 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from agentic_repo_kit.config import load_config
 from agentic_repo_kit.errors import AgenticRepoError
 from agentic_repo_kit.operations import bootstrap, check, upgrade
 
@@ -42,6 +41,9 @@ class ManagedCheckWorkflowTests(unittest.TestCase):
             self.assertIn('distribution.get("sha256")', workflow)
             self.assertIn("releases/download", workflow)
             self.assertIn("curl --fail --location --proto '=https'", workflow)
+            self.assertIn('KIT_REPOSITORY" == "$GITHUB_REPOSITORY', workflow)
+            self.assertIn("scripts/build_pyz.py", workflow)
+            self.assertIn("building deterministic self-host artifact", workflow)
             self.assertIn("artifact digest mismatch", workflow)
             self.assertIn('python "$KIT_PATH" check .', workflow)
             self.assertIn("contents: read", workflow)
