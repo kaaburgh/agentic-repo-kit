@@ -1,10 +1,10 @@
 {
   "distribution": {
-    "artifact": "agentic-repo-kit-0.1.9.pyz",
-    "release": "v0.1.9",
+    "artifact": "agentic-repo-kit-0.1.10.pyz",
+    "release": "v0.1.10",
     "repository": "kaaburgh/agentic-repo-kit",
-    "sha256": "79e914bc322873025f41db0ffa118bd037362b77708e4433bb854d8dd42b041e",
-    "tool_version": "0.1.9"
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "tool_version": "0.1.10"
   },
   "format": 2,
   "generated": {
@@ -13,7 +13,7 @@
     ".github/workflows/agentic-repo-check.yml": "3851fb3a320ed3e7055dc42d2eca682491d1600e07aabba28ec03413d735a9c3",
     "AGENTS.md": "a98b4d1ec24543b4bf4841316a3381807795432746a2cf3904ef07feb679a7a5",
     "CLAUDE.md": "e68ff4b91505b9ca79f6f6656439c0c73a3448581f92407f25ee20aba9320088",
-    "docs/agent-playbook.md": "a5978a89167d01c3ca8a71815c5c440008aacdb6c39bbd35f73ad4bbadc5e43c",
+    "docs/agent-playbook.md": "1fb9e4bcf101f4f0e907a176706dee21c898bf6389cf0dd677f253571c3f6bcd",
     "docs/roadmap-authoring.md": "b0c6e61685d139253846abf5996c8c4b1b1afaef509670d2a1d8826823a708e4"
   },
   "kit_version": 1,
@@ -25,5 +25,5 @@
     "name": "agentic-repo-kit",
     "roadmap": "ROADMAP.md"
   },
-  "tool_version": "0.1.9"
+  "tool_version": "0.1.10"
 }

@@ -3,23 +3,23 @@
 
 This playbook turns the repository policy into an execution loop for **agentic-repo-kit**.
 
-Cloud-first execution is **enabled**. One roadmap item per PR is **required**.
+Cloud-first execution is **enabled**. One roadmap item per PR is **required** for roadmap-scoped feature or investigation work; a process-only PR may omit a roadmap item when it explicitly explains why no roadmap item applies.
 
-Before work, read `AGENTS.md`, the selected roadmap item, its dependencies, and linked durable evidence. Prefer a bounded experiment or implementation whose result can be reviewed without chat history.
+Before roadmap-scoped work, read `AGENTS.md`, the selected roadmap item, its dependencies, and linked durable evidence. For process-only work, read `AGENTS.md` and the relevant durable policy/docs without inventing an unrelated roadmap item. Prefer a bounded experiment or implementation whose result can be reviewed without chat history.
 
 ## Core execution loop
 
-1. Select one ready roadmap item and verify its dependencies.
-2. Inspect current code, docs, tests, CI/build/install paths, and relevant history before changing reality.
+1. Select one ready roadmap item and verify its dependencies; for a process-only change, explicitly establish that no roadmap item applies instead of inventing one.
+2. Inspect current code, docs, tests, CI/build/install paths, and only history permitted by the active evidence policy before changing reality. If a blind-research gate excludes unsupported history, do not inspect excluded commits, branches, deleted material, or abandoned work for target-specific investigation.
 3. Separate established facts from assumptions.
-4. Choose the smallest change or experiment that can satisfy the item acceptance criteria.
+4. Choose the smallest change or experiment that can satisfy the item acceptance criteria or the explicitly bounded process-only goal.
 5. Validate what can be validated in the current environment.
 6. Reconcile roadmap and durable docs with what was actually learned.
 7. Prepare a focused PR with explicit remaining unknowns and deliberately excluded follow-ups.
 
 ## Required-capability handoff
 
-If the selected item needs a tool/capability that the current environment lacks:
+If the selected item or bounded process-only task needs a tool/capability that the current environment lacks:
 
 1. Confirm that the capability is actually required by acceptance/evidence needs; do not escalate merely useful optional cross-checks.
 2. Prefer a bounded in-repository implementation when it is a reasonable task-sized substitute with equivalent evidence quality.

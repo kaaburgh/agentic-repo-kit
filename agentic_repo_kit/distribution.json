@@ -1,7 +1,7 @@
 {
-  "artifact": "agentic-repo-kit-0.1.9.pyz",
-  "release": "v0.1.9",
+  "artifact": "agentic-repo-kit-0.1.10.pyz",
+  "release": "v0.1.10",
   "repository": "kaaburgh/agentic-repo-kit",
-  "sha256": "79e914bc322873025f41db0ffa118bd037362b77708e4433bb854d8dd42b041e",
-  "tool_version": "0.1.9"
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "tool_version": "0.1.10"
 }
