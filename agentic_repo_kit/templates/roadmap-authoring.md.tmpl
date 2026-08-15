@@ -47,11 +47,11 @@ If local execution is genuinely required, prefer a one-shot experiment prepared 
 
 ## Operator-facing derived projections
 
-The roadmap remains authoritative for project state, dependencies, readiness, evidence, acceptance criteria, and sequencing. A repository may maintain a separate short checklist or handoff for the human operator, but that document is a derived projection of current roadmap actions rather than a second planning source.
+The roadmap remains authoritative for planning state: project state, dependencies, readiness, evidence, acceptance criteria, and sequencing. A repository may maintain a separate short checklist or handoff for the human operator. That projection may incorporate procedural detail from linked durable docs, scripts, or tooling, but those sources supply procedure rather than competing readiness or sequencing state.
 
-When a roadmap edit changes what the operator must do now, reconcile the projection in the same PR. Operator-relevant changes include ready/current `LOCAL ONLY` work, operator handoffs, `Next experiment`, required inputs or steps, acceptance or collection requirements, and the appearance or disappearance of a local action.
+When a PR changes what the operator must do now or how they must do it, reconcile the projection in the same PR, whether the trigger is a roadmap edit or a procedural change elsewhere. Operator-relevant changes include ready/current `LOCAL ONLY` work, operator handoffs, `Next experiment`, required inputs or steps, acceptance or collection requirements, the appearance or disappearance of a local action, and changes to referenced commands, flags, preflight steps, scripts, or packaging/collection procedure.
 
-Project only current human actions. Do not copy the whole dependency graph, rationale, or history, and do not automatically surface completed work, blocked downstream work, or purely cloud-executable items. The repository may identify the projection through local policy or a future explicit configuration mechanism; no particular filename is required.
+Project only current human actions. Use the roadmap to decide what is current, ready, blocked, or sequenced; use linked durable docs/scripts for procedural detail when they define how an operator action is performed. Do not copy the whole dependency graph, rationale, or history, and do not automatically surface completed work, blocked downstream work, or purely cloud-executable items. The repository may identify the projection through local policy or a future explicit configuration mechanism; no particular filename is required.
 
 `agentic-repo check` currently validates generated-file drift, links, and normalized roadmap graph invariants. Without an explicit projection/generator contract, it cannot be assumed to semantically derive or prove the correctness of an arbitrary operator checklist.
 
