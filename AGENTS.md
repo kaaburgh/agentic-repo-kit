@@ -39,6 +39,8 @@ Do not invent commands, targets, performance numbers, supported versions, or arc
 
 A missing tool or capability in one agent environment is **not** evidence that the capability is unavailable to the project or that the task is impossible. Escalate environment-specific acquisition failures as bounded operator handoffs instead of turning them into unsupported project conclusions.
 
+Before escalating an unavailable capability, confirm that it is required by the task's acceptance or evidence needs rather than merely a useful optional cross-check.
+
 When a required capability is missing:
 
 - first decide whether a small in-project tool or script can provide the required evidence safely and within the current task scope; prefer that when it is a reasonable bounded solution rather than silently substituting a weaker analysis method;

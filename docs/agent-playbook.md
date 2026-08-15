@@ -26,7 +26,7 @@ Record one bounded partial-progress packet with:
 - **blocked line** — the exact work item or evidence/acceptance step that cannot proceed;
 - **required capability** — tool/capability identity plus version/platform constraints when relevant;
 - **attempts and failures** — acquisition/bootstrap paths tried and their concrete errors;
-- **operator ask** — the smallest generic tool/artifact/access change that would unblock the line;
+- **operator ask** — the smallest repository-permitted tool, artifact, input, or access change that would unblock the line;
 - **independent progress** — work completed or still proceeding outside the blocked line;
 - **durable follow-up** — where the reusable bootstrap path or meaningful negative result will be recorded after resolution.
 

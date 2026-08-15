@@ -41,6 +41,7 @@ class OperatorHandoffPolicyTests(unittest.TestCase):
         self.assertIn("**not** evidence that the capability is unavailable to the project", agents)
         self.assertIn("pause only the line of work", agents)
         self.assertIn("exact missing tool/capability", agents)
+        self.assertIn("required by the task's acceptance or evidence needs", agents)
         self.assertIn("The normative decision rules live in `AGENTS.md`", playbook)
         self.assertIn("**blocked line**", playbook)
         self.assertIn("**operator ask**", playbook)
