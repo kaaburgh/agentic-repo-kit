@@ -45,6 +45,16 @@ A missing tool or failed acquisition in one sandbox is not, by itself, evidence 
 
 If local execution is genuinely required, prefer a one-shot experiment prepared by the agent that creates a self-contained safe artifact for later analysis.
 
+## Operator-facing derived projections
+
+The roadmap remains authoritative for project state, dependencies, readiness, evidence, acceptance criteria, and sequencing. A repository may maintain a separate short checklist or handoff for the human operator, but that document is a derived projection of current roadmap actions rather than a second planning source.
+
+When a roadmap edit changes what the operator must do now, reconcile the projection in the same PR. Operator-relevant changes include ready/current `LOCAL ONLY` work, operator handoffs, `Next experiment`, required inputs or steps, acceptance or collection requirements, and the appearance or disappearance of a local action.
+
+Project only current human actions. Do not copy the whole dependency graph, rationale, or history, and do not automatically surface completed work, blocked downstream work, or purely cloud-executable items. The repository may identify the projection through local policy or a future explicit configuration mechanism; no particular filename is required.
+
+`agentic-repo check` currently validates generated-file drift, links, and normalized roadmap graph invariants. Without an explicit projection/generator contract, it cannot be assumed to semantically derive or prove the correctness of an arbitrary operator checklist.
+
 ## Structural validation after normalization
 
 `agentic-repo check` leaves milestone-only planning documents alone. Once the roadmap contains structured ID-bearing item headings such as `## ID — Title` or `### ID — Title`, it also checks stable mechanical graph invariants: unique IDs, a status field, a dependency field, resolvable dependency IDs, and an acyclic dependency graph.

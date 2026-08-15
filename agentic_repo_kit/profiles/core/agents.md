@@ -8,6 +8,16 @@ For normalized roadmap items, keep IDs unique and dependency references valid an
 
 Keep work bounded. Do not opportunistically absorb adjacent roadmap items unless inseparable. A PR must be understandable without chat history.
 
+## Operator-facing derived projections
+
+The authoritative roadmap remains the single source of truth for project state, dependencies, readiness, evidence, acceptance criteria, and sequencing. A repository may also maintain a short operator-facing checklist or handoff document that projects the current actions a human needs to take. Treat that document as a derived projection of the roadmap, never as a second source of truth.
+
+If a PR changes roadmap state in a way that changes current operator actions, reconcile any existing operator-facing projection in the same PR. This includes changes to ready/current `LOCAL ONLY` work, operator handoffs, `Next experiment`, required inputs or steps, acceptance or collection requirements, and the appearance or disappearance of a local step.
+
+Keep the projection limited to current actionable human work. Completed items, blocked downstream items, and purely cloud-executable items do not become operator checklist entries merely because they exist in the roadmap. If the projection disagrees with the roadmap, the roadmap wins and the projection must be corrected.
+
+The projection's path, format, and maintenance mechanism are project-specific and may be declared through local policy or future configuration. Do not assume a file is named `NEXT-STEPS.md`. Unless an explicit projection/reconciliation mechanism exists, `agentic-repo check` must not be treated as semantically deriving or validating an arbitrary operator checklist from roadmap prose.
+
 ## Validation and claims
 
 Run the narrowest meaningful checks first, then broader checks warranted by the change. State exactly what ran and what did not. Compilation, linting, or synthetic tests do not establish real-target behavior.

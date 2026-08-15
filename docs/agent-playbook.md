@@ -14,7 +14,7 @@ Before roadmap-scoped work, read `AGENTS.md`, the selected roadmap item, its dep
 3. Separate established facts from assumptions.
 4. Choose the smallest change or experiment that can satisfy the item acceptance criteria or the explicitly bounded process-only goal.
 5. Validate what can be validated in the current environment.
-6. Reconcile roadmap and durable docs with what was actually learned.
+6. Reconcile roadmap and durable docs with what was actually learned; if operator-relevant roadmap state changed, reconcile any maintained operator-facing derived projection too.
 7. Prepare a focused PR with explicit remaining unknowns and deliberately excluded follow-ups.
 
 ## Required-capability handoff
