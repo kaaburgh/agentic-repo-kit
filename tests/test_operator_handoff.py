@@ -28,7 +28,7 @@ class OperatorHandoffPolicyTests(unittest.TestCase):
         (root / "ROADMAP.md").write_text("# Roadmap\n", encoding="utf-8")
         return temp, root
 
-    def test_core_contract_includes_operator_handoff_policy(self) -> None:
+    def test_core_contract_keeps_handoff_policy_normative_in_agents(self) -> None:
         temp, root = self.make_repo()
         self.addCleanup(temp.cleanup)
         bootstrap(root, root / ".agentic-repo.toml")
@@ -41,7 +41,18 @@ class OperatorHandoffPolicyTests(unittest.TestCase):
         self.assertIn("**not** evidence that the capability is unavailable to the project", agents)
         self.assertIn("pause only the line of work", agents)
         self.assertIn("exact missing tool/capability", agents)
-        self.assertIn("Do not infer `LOCAL ONLY`", playbook)
+        self.assertIn("The normative decision rules live in `AGENTS.md`", playbook)
+        self.assertIn("**blocked line**", playbook)
+        self.assertIn("**operator ask**", playbook)
+        self.assertIn("**independent progress**", playbook)
+        for duplicated_rule in (
+            "Confirm that the capability is actually required",
+            "Prefer a bounded in-repository implementation",
+            "Try normal install/download/bootstrap",
+            "Do not infer `LOCAL ONLY`",
+            "After resolution, preserve the working bootstrap/acquisition path",
+        ):
+            self.assertNotIn(duplicated_rule, playbook)
         self.assertIn("failed acquisition in one sandbox is not, by itself, evidence for `LOCAL ONLY`", roadmap_authoring)
         self.assertEqual(__version__, lock["tool_version"])
         self.assertTrue(check(root, root / ".agentic-repo.toml").ok)

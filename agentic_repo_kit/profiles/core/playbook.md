@@ -10,14 +10,18 @@
 
 ## Required-capability handoff
 
-If the selected item or bounded process-only task needs a tool/capability that the current environment lacks:
+The normative decision rules live in `AGENTS.md` under **Tool availability and operator handoff**. Apply those rules first; this playbook section only defines the operator packet used when that policy calls for a handoff.
 
-1. Confirm that the capability is actually required by acceptance/evidence needs; do not escalate merely useful optional cross-checks.
-2. Prefer a bounded in-repository implementation when it is a reasonable task-sized substitute with equivalent evidence quality.
-3. Try normal install/download/bootstrap/attached-artifact routes available to the environment.
-4. If environment constraints block acquisition, continue independent work and package a precise operator handoff: capability/tool, version/platform, why required, attempts made, and exact failures.
-5. Do not infer `LOCAL ONLY` or project-level impossibility from one sandbox's acquisition failure.
-6. After resolution, preserve the working bootstrap/acquisition path or a useful negative result so the next agent does not repeat the same dead end.
+Record one bounded partial-progress packet with:
+
+- **blocked line** — the exact work item or evidence/acceptance step that cannot proceed;
+- **required capability** — tool/capability identity plus version/platform constraints when relevant;
+- **attempts and failures** — acquisition/bootstrap paths tried and their concrete errors;
+- **operator ask** — the smallest generic tool/artifact/access change that would unblock the line;
+- **independent progress** — work completed or still proceeding outside the blocked line;
+- **durable follow-up** — where the reusable bootstrap path or meaningful negative result will be recorded after resolution.
+
+Do not reinterpret or duplicate the policy decision logic here; if this packet conflicts with `AGENTS.md`, `AGENTS.md` wins.
 
 ## Evidence-producing CI and regression triggers
 
