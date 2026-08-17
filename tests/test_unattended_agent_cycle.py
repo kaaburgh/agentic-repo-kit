@@ -113,6 +113,8 @@ class UnattendedAgentCycleTests(unittest.TestCase):
                 "proposed content under review",
                 "Path A — atomic Git-object construction",
                 "refused or rejected twice in the same run",
+                "none — no repository writes",
+                "does not require Path A/B details",
                 "ATOMICITY: LOST — per-file fallback used",
                 "Bind every CI status, review submission, review request, review-thread disposition, reaction, and merge-readiness verdict to one exact commit SHA",
                 "do not wait for GitHub review state `APPROVED`",

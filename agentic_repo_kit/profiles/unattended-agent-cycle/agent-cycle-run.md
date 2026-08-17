@@ -25,7 +25,7 @@ A cycle may wait only when all currently executable independent work is exhauste
 
 ## Pre-approved write paths
 
-There are exactly two pre-approved repository write paths for unattended cycles.
+When a cycle performs repository writes, there are exactly two pre-approved write paths. A cycle that performs no repository writes uses the report value `none — no repository writes`; that is not a third write mechanism and does not require Path A/B details.
 
 ### Path A — atomic Git-object construction
 
@@ -89,10 +89,10 @@ Every cycle report must include enough evidence to reconstruct what happened wit
 - repository default branch and exact starting/final head SHA;
 - evidence mechanism used for repository metadata, file reads, CI, reviews, reactions, and writes;
 - validation execution level for every validation claim;
-- write path used (`atomic Git-object` or `per-file fallback`), including both atomic-path refusal errors before fallback and every intermediate SHA when Path B was used;
+- write path used: `atomic Git-object`, `per-file fallback`, or `none — no repository writes`; include atomic-refusal errors and intermediate SHAs only when the corresponding write path requires them;
 - exact-SHA bindings for CI statuses, review requests, review verdicts, and PR-body reactions;
 - review threads grouped as resolved/addressed and open/partially-addressed/disputed/unaddressed;
 - every material `unknown` that remains;
 - an `INSTRUCTION DEFECTS` section naming stale, contradictory, impossible, or repository-inapplicable instructions discovered during the run. Use `none` only when none were observed.
 
-If Path B was used, include the explicit atomicity-loss statement required above. If the cycle waited, name the exact external condition and SHA it was waiting on.
+If Path B was used, include the explicit atomicity-loss statement required above. If no repository write occurred, report `none — no repository writes` rather than inventing a write path. If the cycle waited, name the exact external condition and SHA it was waiting on.
