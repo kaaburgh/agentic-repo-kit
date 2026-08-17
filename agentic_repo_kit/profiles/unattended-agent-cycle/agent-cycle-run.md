@@ -55,7 +55,7 @@ Report `unknown` rather than inheriting an unbound or stale verdict.
 
 In a topology where author and reviewer activity can share an owner account, do not wait for GitHub review state `APPROVED` as the merge-readiness oracle. GitHub may expose valid review feedback only as `COMMENTED` in that topology.
 
-Treat a 👍 reaction on the PR body as the approval signal only when its reacting account is the designated verdict source for the workflow. Distinguish bot-side and human-side verdicts by the reacting account that produced the reaction, and bind the reaction observation to the exact PR head SHA observed at the same time.
+Treat a 👍 reaction on the PR body as the approval signal only when its reacting account is the designated verdict source for the workflow. Distinguish bot-side and human-side verdicts by the reacting account that produced the reaction. A PR-body reaction has no native commit SHA and is not SHA-bound by itself. Bind it to the most recent SHA-bearing review or verdict artifact from the same reacting account, and require that artifact to name the exact PR head under evaluation. If no same-source SHA-bearing artifact exists, or it names another head, classify the reaction as `unbound` and the approval verdict as `unknown`; never inherit it onto a newer head merely because the reaction is still present.
 
 Owner-account review submissions are not distinguishable by author identity alone. Classify them by review content and thread context. A `COMMENTED` state is transport metadata, not by itself approval or rejection.
 
