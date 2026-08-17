@@ -269,7 +269,7 @@ This is the live backlog for turning successful repository-agent conventions int
   - offline handoff needs only the artifact because the expected digest is already committed in the consumer lock;
   - `SHA256SUMS` remains a release-level cross-check, not the consumer trust anchor;
   - package/tool version advanced to 0.1.8, lock format advanced to 2, and config `kit_version = 1` remained stable.
-- **Artifacts / docs:** `scripts/build_pyz.py`, `agentic_repo_kit/distribution.py`, `agentic_repo_kit/distribution.json`, renderer/lock format 2, release workflow, `docs/distribution.md`, focused tests, GitHub Release `v0.1.8`
+- **Artifacts / docs:** `scripts/build_pyz.py`, `agentic_repo_kit/distribution.py`, renderer/lock format 2, release workflow, `docs/distribution.md`, focused tests, GitHub Release `v0.1.8`
 - **Estimated scope:** Medium
 
 ### ARK13 — Generate the repository contract check workflow
@@ -302,7 +302,7 @@ This is the live backlog for turning successful repository-agent conventions int
 
 ### ARK14 — Add an unattended-agent-cycle profile
 
-- **Status:** Open
+- **Status:** Implemented, validation incomplete
 - **Priority:** High
 - **Category:** Core policy / unattended execution
 - **Depends on:** ARK13
@@ -311,6 +311,8 @@ This is the live backlog for turning successful repository-agent conventions int
   1. ChatGPT project instructions are **not** visible to a scheduled task. Two consecutive runs reported the prompt's own canary as `POLICY LAYER: MISSING` and fell back to an abbreviated rule set. Repository files are always readable, so the repository is the only reliable carrier.
   2. The prompt named `main`; the repository's default branch is `master`. The run reported this correctly as an instruction defect, but it is a defect a repository-side contract cannot have, because the contract ships with the repository.
   3. Earlier runs against several repositories reported `docs/PROJECT_STATUS.md` missing every cycle because a stale prompt named a file no repository has. A generated contract is checked for drift and cannot drift out of the repository it describes. Additionally, `kaaburgh/bb-shadPS4-correctness-instrumentation#18` establishes the review topology this contract must describe: all 15 reviews carry `state: COMMENTED` because GitHub forbids self-approval, and merge-readiness is signalled by a 👍 reaction on the PR body — from `chatgpt-codex-connector[bot]` for the bot verdict and from the owner account for the human-side verdict.
+- **Implementation evidence:** PR #22 adds the discoverable opt-in `unattended-agent-cycle` profile, profile-owned generated `docs/agent-cycle-run.md`, the profile-specific `AGENTS.md` link fragment, trusted ownership/drift handling, and focused selection/drift/pre-ARK14-upgrade/unmanaged-conflict/contract-semantics tests. The generated contract defines permanent runner properties, repository-metadata default-branch discovery, atomic Git-object and bounded per-file write paths, exact-SHA CI/review/reaction binding, shared-account review classification, thread disposition, validation execution levels, and cycle reporting while leaving approval/override eligibility outside repository-carried policy. Tool/package version is 0.1.13 with `kit_version = 1` unchanged.
+- **Validation evidence:** On exact PR head `965b47b6ffed907083ab56b3c2e1321fbd7fe6a1`, CI run `31995723140` passed the full 89-test suite and `python -m agentic_repo_kit check .`; managed contract run `31995723131` also passed. The deterministic v0.1.13 `.pyz` digest is `2afdf372f3bef44245f1c509161e1f3cdfdc3cdbedc8818b8ca152390272fe22` and is pinned in distribution metadata and the dogfood lock. Release publication and post-review evidence remain pending merge.
 - **Hypotheses:** The rules are orthogonal to domain. They do not belong in `core` wholesale, because they assume an unattended runner and a shared-account review topology that an ordinary interactive repository does not have. Two clauses inside them — evidence-over-mechanism and the validation execution level — are generic enough for `core` and are proposed as a follow-up rather than folded in here.
 - **Proposed direction after evidence:** Add an opt-in orthogonal profile `unattended-agent-cycle` generating one managed file `docs/agent-cycle-run.md`, referenced from `AGENTS.md` alongside the playbook. Keep in the chat-side prompt only what must not be stored where the agent can write: the anti-self-approval prohibitions, the run-scoped review switch and the override acceptance rules.
 - **Compatibility / safety:** Generated policy that the executing agent can also modify is a self-referential trust boundary. The contract must therefore state that changing it is ordinary roadmap work requiring its own issue, PR and review, and the chat-side prompt must forbid same-run edits to it. Do not move the anti-self-approval prohibitions into the repository.
