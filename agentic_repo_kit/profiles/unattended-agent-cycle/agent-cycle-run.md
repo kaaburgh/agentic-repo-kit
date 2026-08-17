@@ -11,8 +11,9 @@ At the start of every cycle:
 
 1. Read repository metadata and obtain the repository's actual default branch. Never assume the branch is named `main`, `master`, or anything else.
 2. Resolve the default-branch head and, when working on a PR, the exact PR head SHA.
-3. Resolve `docs/agent-cycle-run.md` from repository contents and record its Git blob SHA as `CYCLE CONTRACT`.
-4. Record the evidence mechanism used to obtain each identity, such as repository API, Git object API, CLI, or reconstructed local checkout.
+3. Resolve the authoritative `docs/agent-cycle-run.md` from the trusted default-branch head and record its Git blob SHA as `CYCLE CONTRACT`. If an external runner supplies an immutable authoritative-blob pin, record that pin and its provenance instead. Never take authority from the PR-head copy merely because it is newer.
+4. If the PR changes this contract, treat the PR-head copy as proposed content under review while continuing to execute the trusted default-branch or externally pinned contract. The proposed contract becomes authoritative only after it passes the ordinary review/merge boundary and is present on the trusted revision.
+5. Record the evidence mechanism used to obtain each identity, such as repository API, Git object API, CLI, or reconstructed local checkout.
 
 A later head change invalidates current-head claims made against the earlier SHA. Preserve earlier evidence as historical evidence instead of silently rebinding it.
 
@@ -55,7 +56,7 @@ Report `unknown` rather than inheriting an unbound or stale verdict.
 
 In a topology where author and reviewer activity can share an owner account, do not wait for GitHub review state `APPROVED` as the merge-readiness oracle. GitHub may expose valid review feedback only as `COMMENTED` in that topology.
 
-Treat a 👍 reaction on the PR body as the approval signal only when its reacting account is the designated verdict source for the workflow. Distinguish bot-side and human-side verdicts by the reacting account that produced the reaction. A PR-body reaction has no native commit SHA and is not SHA-bound by itself. Bind it to the most recent SHA-bearing review or verdict artifact from the same reacting account, and require that artifact to name the exact PR head under evaluation. If no same-source SHA-bearing artifact exists, or it names another head, classify the reaction as `unbound` and the approval verdict as `unknown`; never inherit it onto a newer head merely because the reaction is still present.
+Treat a 👍 reaction on the PR body as the approval signal only when its reacting account is the designated verdict source for the workflow. Distinguish bot-side and human-side verdicts by the reacting account that produced the reaction. A PR-body reaction has no native commit SHA and is not SHA-bound by itself. Before using it, establish both that the reaction was created after the exact current head became the PR head and that a same-source SHA-bearing approval review/verdict names that exact head; an external verdict record may satisfy the second condition only when it explicitly maps the reaction identity/account to that head. Use reaction timestamps plus PR head-change/timeline evidence, or an equivalent durable mechanism, for the freshness check. If freshness or same-source head binding cannot be established, classify the reaction as `unbound` and the approval verdict as `unknown`; never inherit it onto a newer head merely because the reaction is still present.
 
 Owner-account review submissions are not distinguishable by author identity alone. Classify them by review content and thread context. A `COMMENTED` state is transport metadata, not by itself approval or rejection.
 
