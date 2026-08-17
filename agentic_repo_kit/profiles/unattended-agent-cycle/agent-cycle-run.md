@@ -11,8 +11,8 @@ At the start of every cycle:
 
 1. Read repository metadata and obtain the repository's actual default branch. Never assume the branch is named `main`, `master`, or anything else.
 2. Resolve the default-branch head and, when working on a PR, the exact PR head SHA.
-3. Resolve the authoritative `docs/agent-cycle-run.md` from the trusted default-branch head and record its Git blob SHA as `CYCLE CONTRACT`. If an external runner supplies an immutable authoritative-blob pin, record that pin and its provenance instead. Never take authority from the PR-head copy merely because it is newer.
-4. If the PR changes this contract, treat the PR-head copy as proposed content under review while continuing to execute the trusted default-branch or externally pinned contract. The proposed contract becomes authoritative only after it passes the ordinary review/merge boundary and is present on the trusted revision.
+3. Resolve the authoritative `docs/agent-cycle-run.md` from the trusted default-branch head. If it exists, record its Git blob SHA as `CYCLE CONTRACT`. If it is absent, record `CYCLE CONTRACT: MISSING (absent on trusted revision <sha>)`. If an external runner supplies an immutable authoritative-blob pin, record that pin and its provenance instead. Never take authority from the PR-head copy merely because it is newer or is the only copy present.
+4. If the PR changes or introduces this contract, treat the PR-head copy as proposed content under review while continuing to execute the trusted default-branch or externally pinned contract. When the trusted revision reports `CYCLE CONTRACT: MISSING`, the cycle may inspect, validate, and review the proposed contract and perform ordinary repository work only under the external runner/prompt layer and already-trusted repository policy; the proposed copy cannot self-authorize unattended policy. The proposed contract becomes authoritative only after it passes the ordinary review/merge boundary and is present on the trusted revision.
 5. Record the evidence mechanism used to obtain each identity, such as repository API, Git object API, CLI, or reconstructed local checkout.
 
 A later head change invalidates current-head claims made against the earlier SHA. Preserve earlier evidence as historical evidence instead of silently rebinding it.
@@ -29,13 +29,15 @@ When a cycle performs repository writes, there are exactly two pre-approved writ
 
 ### Path A — atomic Git-object construction
 
-Prefer this path. Create the required blobs, construct one tree from the intended base tree, and create one commit. If the target branch ref is absent, record the expected ref state as absent, re-confirm absence immediately before ref creation, then create the ref directly at the new commit. Treat an already-exists response or any newly observed ref as a compare-and-swap failure: re-resolve current state and do not overwrite it. If the target branch ref exists, record its expected old SHA and advance it once with a non-force fast-forward/compare-and-swap update from that exact SHA to the new commit; if the expected old SHA no longer matches, stop and re-resolve rather than forcing. Verify the resulting branch ref equals the created commit before requesting CI or review.
+Prefer this path. Create the required blobs, construct one tree from the intended base tree, and create one commit. If the target branch ref is absent, record the expected ref state as absent, re-confirm absence immediately before ref creation, then create the ref directly at the new commit. Treat an already-exists response or any newly observed ref as a compare-and-swap failure: re-resolve current state and do not overwrite it. If the target branch ref exists, record its expected old SHA and advance it once with a non-force fast-forward/compare-and-swap update from that exact SHA to the new commit; if the expected old SHA no longer matches, stop and re-resolve rather than forcing. A compare-and-swap or concurrency conflict is not a Path A failure for fallback purposes; re-resolve the current state and retry Path A from the new head. Verify the resulting branch ref equals the created commit before requesting CI or review.
 
 ### Path B — per-file repository writes
 
-Use per-file writes only after Path A has been refused or rejected twice in the same run by the available repository mechanism. Record both failed atomic attempts and their concrete errors before falling back.
+Use per-file writes only after Path A has been refused or rejected twice in the same run because the available repository mechanism cannot perform the required atomic object/ref operation — for example because that operation is unavailable, unsupported, or forbidden. Record both mechanism-level failures and their concrete errors before falling back. A compare-and-swap, already-exists, stale-head, expected-SHA mismatch, or other concurrency conflict never counts toward this fallback threshold; re-resolve current state and retry Path A instead.
 
-Each successful per-file write may create a new commit. Record every intermediate commit SHA in order, then resolve and report the final branch head. The report must state explicitly: `ATOMICITY: LOST — per-file fallback used`.
+Before the first per-file write, verify the branch head still equals the recorded expected starting SHA. Each per-file replacement must carry the expected current blob SHA for that path; each create must carry an explicit expected-absence precondition. Immediately before each subsequent write, verify the branch head equals the preceding intermediate commit. If any expected blob/ref state no longer matches, stop the fallback and re-resolve rather than overwriting concurrent work.
+
+Each successful per-file write may create a new commit. Record every intermediate commit SHA in order. After the last write, resolve the branch head and verify it equals the final intermediate commit before reporting success or requesting CI/review. The report must state explicitly: `ATOMICITY: LOST — per-file fallback used`.
 
 Do not rewrite a previously reviewed head to make new changes appear under the old SHA. A review request, CI result, reaction, or verdict is evidence only for the exact SHA it names.
 
@@ -85,11 +87,11 @@ A stronger evidence class does not upgrade an unknown execution level, and local
 
 Every cycle report must include enough evidence to reconstruct what happened without chat history:
 
-- `CYCLE CONTRACT`: the resolved Git blob SHA for this document;
+- `CYCLE CONTRACT`: the resolved Git blob SHA for this document, an externally pinned authoritative blob with provenance, or `MISSING (absent on trusted revision <sha>)` when the trusted revision has no contract;
 - repository default branch and exact starting/final head SHA;
 - evidence mechanism used for repository metadata, file reads, CI, reviews, reactions, and writes;
 - validation execution level for every validation claim;
-- write path used: `atomic Git-object`, `per-file fallback`, or `none — no repository writes`; include atomic-refusal errors and intermediate SHAs only when the corresponding write path requires them;
+- write path used: `atomic Git-object`, `per-file fallback`, or `none — no repository writes`; include mechanism-level atomic-refusal errors and intermediate SHAs only when the corresponding write path requires them;
 - exact-SHA bindings for CI statuses, review requests, review verdicts, and PR-body reactions;
 - review threads grouped as resolved/addressed and open/partially-addressed/disputed/unaddressed;
 - every material `unknown` that remains;
