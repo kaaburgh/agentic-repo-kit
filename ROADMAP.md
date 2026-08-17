@@ -296,6 +296,70 @@ This is the live backlog for turning successful repository-agent conventions int
 - **Artifacts / docs:** workflow template, generated dogfood workflow, renderer/ownership allowlist, `tests/test_managed_check_workflow.py`, `docs/distribution.md`, package version, GitHub Release `v0.1.9`, BB PRs #12/#13
 - **Estimated scope:** Medium
 
+## M5 — unattended execution contract
+
+> A repository can state how an unattended scheduled agent must obtain evidence, write commits, bind review verdicts and report, so that contract lives in the repository rather than in a chat-side prompt that no reviewer can see and no tool can validate.
+
+### ARK14 — Add an unattended-agent-cycle profile
+
+- **Status:** Open
+- **Priority:** High
+- **Category:** Core policy / unattended execution
+- **Depends on:** ARK13
+- **Problem / question:** A scheduled ChatGPT task driving `issue → PR → CI → review → fix` needs rules that no current profile states: which write path is sanctioned when there is no working tree, how a review verdict binds to one SHA, what a verdict looks like when author and reviewer share an account, when a run may wait, and what its report must contain. Today those rules live only in the task prompt. Can they become a generated, versioned repository contract?
+- **Known evidence:** Live runs against `kaaburgh/kinopub.webos` on 2026-08-17 confirm three independent failure modes that a repository-side contract would remove.
+  1. ChatGPT project instructions are **not** visible to a scheduled task. Two consecutive runs reported the prompt's own canary as `POLICY LAYER: MISSING` and fell back to an abbreviated rule set. Repository files are always readable, so the repository is the only reliable carrier.
+  2. The prompt named `main`; the repository's default branch is `master`. The run reported this correctly as an instruction defect, but it is a defect a repository-side contract cannot have, because the contract ships with the repository.
+  3. Earlier runs against several repositories reported `docs/PROJECT_STATUS.md` missing every cycle because a stale prompt named a file no repository has. A generated contract is checked for drift and cannot drift out of the repository it describes. Additionally, `kaaburgh/bb-shadPS4-correctness-instrumentation#18` establishes the review topology this contract must describe: all 15 reviews carry `state: COMMENTED` because GitHub forbids self-approval, and merge-readiness is signalled by a 👍 reaction on the PR body — from `chatgpt-codex-connector[bot]` for the bot verdict and from the owner account for the human-side verdict.
+- **Hypotheses:** The rules are orthogonal to domain. They do not belong in `core` wholesale, because they assume an unattended runner and a shared-account review topology that an ordinary interactive repository does not have. Two clauses inside them — evidence-over-mechanism and the validation execution level — are generic enough for `core` and are proposed as a follow-up rather than folded in here.
+- **Proposed direction after evidence:** Add an opt-in orthogonal profile `unattended-agent-cycle` generating one managed file `docs/agent-cycle-run.md`, referenced from `AGENTS.md` alongside the playbook. Keep in the chat-side prompt only what must not be stored where the agent can write: the anti-self-approval prohibitions, the run-scoped review switch and the override acceptance rules.
+- **Compatibility / safety:** Generated policy that the executing agent can also modify is a self-referential trust boundary. The contract must therefore state that changing it is ordinary roadmap work requiring its own issue, PR and review, and the chat-side prompt must forbid same-run edits to it. Do not move the anti-self-approval prohibitions into the repository.
+- **Validation / acceptance:**
+  - `unattended-agent-cycle` is a discoverable opt-in profile; repositories that do not select it receive no unattended-run policy;
+  - the profile generates and owns `docs/agent-cycle-run.md`, participates in ownership and drift checking, upgrades transactionally, and refuses to overwrite an unmarked project-owned file;
+  - generated `AGENTS.md` links the new document where the profile is selected, and does not when it is not;
+  - the contract states that missing DNS, a missing CLI client, a missing working tree and a non-first-class OS are permanent runner properties and never a reason for an empty cycle;
+  - the contract requires reading the default branch from repository metadata rather than assuming `main`;
+  - the contract defines two pre-approved write paths, prefers atomic Git-object construction, and permits per-file writes only after the atomic path is refused twice in the same run, requiring every intermediate SHA and an explicit statement that atomicity was lost;
+  - the contract binds every verdict, CI status and reaction to one exact SHA, forbids waiting for an `APPROVED` review in a shared-account topology, and defines the PR-body 👍 as the approval signal distinguished by reacting account;
+  - the contract states that owner-account reviews are not distinguishable by author and must be classified by content;
+  - the contract defines thread handling including the addressed / partially addressed / disputed split and forbids resolving an unaddressed thread;
+  - the contract's report section requires evidence mechanism, validation execution level, write path used, resolved and open threads, every `unknown`, and an `INSTRUCTION DEFECTS` section;
+  - focused generation tests cover profile selection, the `AGENTS.md` link, drift detection, and upgrade from a pre-ARK14 lock;
+  - full unit tests and `python -m agentic_repo_kit check .` pass;
+  - the package patch version advances while config `kit_version = 1` stays stable, and the release workflow publishes it.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/unattended-agent-cycle/`, generated `docs/agent-cycle-run.md`, `AGENTS.md` link fragment, README profile list, focused tests, package version
+- **Estimated scope:** Medium
+
+### ARK15 — Dogfood the unattended contract in a live loop repository
+
+- **Status:** Open
+- **Priority:** High
+- **Category:** Dogfood / unattended execution
+- **Depends on:** ARK14
+- **Problem / question:** Does a repository that receives `docs/agent-cycle-run.md` through ordinary `upgrade` actually change unattended-run behaviour, and does the run prompt shrink to the switch plus the prohibitions without losing discipline?
+- **Known evidence:** `kinopub.webos` currently produces runs that are correct in form but degraded in substance, because the policy layer never loads. It is the cleanest control: its default branch is `master`, which independently exercises the no-`main` requirement.
+- **Next experiment:** Select the profile in one repository, upgrade, replace its scheduled task with the thin prompt, and compare three consecutive cycles against the pre-ARK14 baseline.
+- **Expected information gain:** Whether repository-carried policy is actually read and obeyed by a scheduled runner, and whether any rule silently degrades once it is one document further away than the prompt.
+- **Validation / acceptance:**
+  - the target receives exactly the new managed file and lock change through `upgrade`;
+  - three consecutive scheduled cycles report a resolved `CYCLE CONTRACT` sha rather than `MISSING`;
+  - no cycle reports a missing `docs/PROJECT_STATUS.md`, a `main` assumption, or any other instruction defect originating in the prompt;
+  - head binding, one-request-per-SHA and no-force-push hold across those cycles;
+  - the runner never produces an override token, never reacts to its own PR, and never resolves an unaddressed thread;
+  - if the atomic write path is refused, the per-file path is used and reported with every intermediate SHA and the explicit atomicity statement.
+- **Artifacts / docs:** target `.agentic-repo.toml`, lock, generated `docs/agent-cycle-run.md`, three cycle reports
+- **Estimated scope:** Small/Medium
+
+### Follow-up candidate, not part of ARK14
+
+Two clauses in `docs/agent-cycle-run.md` are generic enough for `core` and would then apply to every generated contract, unattended or not:
+
+- **Evidence over mechanism** — a workflow step naming a specific tool specifies the evidence required, not the mechanism required; any mechanism returning the same fields satisfies it.
+- **Validation execution level** — an explicit ladder of reconstructed-local, CI-on-exact-head, and `unknown`, kept separate from the project's evidence classes.
+
+Both overlap the existing `core` sections "Tool availability and operator handoff" and "Validation and claims" and should be reconciled with them rather than appended, so open them as their own item once ARK14 has landed and the wording has survived real cycles.
+
 ## Later
 
 - Define versioned config/profile compatibility migrations when `kit_version = 2` is needed.
