@@ -26,6 +26,7 @@ TRUSTED_GENERATED_PATHS = frozenset(
         ".github/pull_request_template.md",
         ".github/workflows/agentic-repo-check.yml",
         "docs/agent-playbook.md",
+        "docs/agent-cycle-run.md",
         "docs/roadmap-authoring.md",
         "docs/re/README.md",
         "docs/experiments/README.md",
