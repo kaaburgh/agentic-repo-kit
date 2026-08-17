@@ -21,6 +21,10 @@ def _template(name: str) -> str:
     return files("agentic_repo_kit").joinpath("templates", name).read_text(encoding="utf-8")
 
 
+def _profile_document(profile: str, name: str) -> str:
+    return files("agentic_repo_kit").joinpath("profiles", profile, name).read_text(encoding="utf-8")
+
+
 def _local_fragments(root: Path, paths: tuple[str, ...]) -> list[str]:
     fragments: list[str] = []
     for relative in paths:
@@ -80,6 +84,12 @@ def render_generated_files(config: RepositoryConfig, root: Path) -> dict[str, st
     if "reverse-engineering" in config.profiles:
         generated["docs/re/README.md"] = _replace(_template("re-readme.md.tmpl"), common)
         generated["docs/experiments/README.md"] = _replace(_template("experiments-readme.md.tmpl"), common)
+
+    if "unattended-agent-cycle" in config.profiles:
+        generated["docs/agent-cycle-run.md"] = _replace(
+            _profile_document("unattended-agent-cycle", "agent-cycle-run.md"),
+            common,
+        )
 
     hashes = {path: sha256(content.encode("utf-8")).hexdigest() for path, content in sorted(generated.items())}
     lock = {
