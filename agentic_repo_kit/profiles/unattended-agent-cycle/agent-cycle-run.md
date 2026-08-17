@@ -29,7 +29,7 @@ When a cycle performs repository writes, there are exactly two pre-approved writ
 
 ### Path A — atomic Git-object construction
 
-Prefer this path. Create the required blobs, construct one tree from the intended base tree, create one commit, and advance the branch ref once with a fast-forward update. Verify the resulting branch head equals the created commit before requesting CI or review.
+Prefer this path. Create the required blobs, construct one tree from the intended base tree, and create one commit. If the target branch ref is absent, record the expected ref state as absent, re-confirm absence immediately before ref creation, then create the ref directly at the new commit. Treat an already-exists response or any newly observed ref as a compare-and-swap failure: re-resolve current state and do not overwrite it. If the target branch ref exists, record its expected old SHA and advance it once with a non-force fast-forward/compare-and-swap update from that exact SHA to the new commit; if the expected old SHA no longer matches, stop and re-resolve rather than forcing. Verify the resulting branch ref equals the created commit before requesting CI or review.
 
 ### Path B — per-file repository writes
 
