@@ -363,6 +363,34 @@ Two clauses in `docs/agent-cycle-run.md` are generic enough for `core` and would
 
 Both overlap the existing `core` sections "Tool availability and operator handoff" and "Validation and claims" and should be reconciled with them rather than appended, so open them as their own item once ARK14 has landed and the wording has survived real cycles.
 
+## M6 — roadmap scheduling projections
+
+> A repository can expose its normalized roadmap as a lightweight GitHub Issue scheduling index so a multi-repository agent can discover actionable work cheaply without turning Issues into a second planning authority.
+
+### ARK16 — Add opt-in roadmap Issue projection profile
+
+- **Status:** Implemented, validation incomplete
+- **Priority:** High
+- **Category:** Core policy / scheduling projection
+- **Depends on:** ARK9
+- **Problem / question:** Can normalized roadmap items be represented as lightweight GitHub Issues for scheduler discovery and dependency traversal while preserving `ROADMAP.md` as the authoritative source for readiness, evidence, acceptance and sequencing?
+- **Known evidence:** Multi-repository scheduler simulation found that global action-first selection avoids repository-backlog starvation, while non-atomic merge-to-Issue reconciliation and abandoned claims can strand dependency graphs unless reconciliation is idempotent and recoverable. The selected protocol completed 300/300 baseline and 300/300 review-bottleneck stress runs; disabling merge recovery, graph reconciliation or claim leases reproduced incomplete runs.
+- **Implementation evidence:** Draft PR #24 adds discoverable opt-in profile `roadmap-issues` with agent/playbook/PR fragments and a versioned `agentic-roadmap-issue:v1` contract carrying canonical item identity, source revision, scheduler state, `Blocked by`, and direct `Unblocks` references. The profile keeps the roadmap authoritative, requires canonical revalidation before writes, defines `Unblocks` as a re-evaluation edge rather than an automatic readiness transition, and requires idempotent projection reconciliation after partial GitHub-write failure. Focused tests cover opt-in isolation, source-of-truth semantics, downstream re-evaluation and upgrade behavior. Tool/package version advances to 0.1.14 while `kit_version = 1` stays unchanged.
+- **Validation evidence:** On pre-roadmap-reconciliation implementation head `126383257d74c70f91cb33f71f7167db3283d2e5`, CI run `32333767232` passed all 92 unit tests including the three new profile tests plus `python -m agentic_repo_kit check .`; managed contract run `32333767242` also passed. The deterministic v0.1.14 `.pyz` SHA-256 `e3518ca28e839fa1111aef150a137dd5b14c20b386d0ff88c1872703da0f7e37` is pinned in distribution metadata and the dogfood lock. Independent review and final-head CI remain required before verification.
+- **Validation / acceptance:**
+  - `roadmap-issues` is a discoverable opt-in profile; repositories that do not select it receive no Issue-projection policy;
+  - the configured roadmap remains authoritative and a projected Issue is explicitly a derived scheduling view;
+  - the Issue contract carries roadmap item identity, canonical source, source revision, scheduler state, `Blocked by`, and direct `Unblocks` references without copying the full roadmap rationale/evidence/acceptance text;
+  - before repository writes, a scheduler-selected Issue is revalidated against the current canonical roadmap item, dependencies and applicable gates;
+  - `Unblocks` means re-evaluate each direct dependent against all of its blockers/gates and never means automatic transition to `READY`;
+  - reconciliation is idempotent so a later agent can repair a merge or roadmap change whose GitHub Issue updates only partially completed;
+  - partial roadmap progress keeps the projected Issue open with reconciled state; terminal roadmap state may close it;
+  - the kit remains dependency-free and this item does not add a GitHub API client, cross-repository scheduler, claim/lease mechanism or consumer migration;
+  - focused profile tests, the full unit suite, managed contract workflow and `python -m agentic_repo_kit check .` pass on the final exact head;
+  - package patch version advances while config `kit_version = 1` and lock format 2 remain stable.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/roadmap-issues/`, `tests/test_roadmap_issues_profile.py`, tracking issue #23, package/distribution metadata
+- **Estimated scope:** Small/Medium
+
 ## Later
 
 - Define versioned config/profile compatibility migrations when `kit_version = 2` is needed.
