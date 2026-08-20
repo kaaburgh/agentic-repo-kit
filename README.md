@@ -113,9 +113,10 @@ To intentionally upgrade a target repository, run `upgrade` with the newer selec
 - `emulator`
 - `graphics`
 - `upstream-first`
+- `roadmap-issues`
 - `unattended-agent-cycle`
 
-Profiles are intentionally orthogonal. `blind-research` is opt-in for projects that deliberately want to preserve or measure independent discovery before consulting target-specific recovered knowledge; ordinary reverse-engineering projects do not receive that restriction automatically. `unattended-agent-cycle` is opt-in for repositories driven by scheduled issue/PR/CI/review loops; it adds the managed `docs/agent-cycle-run.md` contract and corresponding `AGENTS.md` link without changing interactive repositories that do not select it. Ascendancy-like native patching should not receive emulator policy, and shadPS4 correctness work should not receive `DllMain`/machine-code patch rules simply because another RE project needed them.
+Profiles are intentionally orthogonal. `blind-research` is opt-in for projects that deliberately want to preserve or measure independent discovery before consulting target-specific recovered knowledge; ordinary reverse-engineering projects do not receive that restriction automatically. `roadmap-issues` is opt-in for repositories that want normalized roadmap items projected into lightweight GitHub Issues for cheap scheduler discovery; the roadmap remains authoritative and the Issues carry only derived scheduling/dependency metadata. `unattended-agent-cycle` is opt-in for repositories driven by scheduled issue/PR/CI/review loops; it adds the managed `docs/agent-cycle-run.md` contract and corresponding `AGENTS.md` link without changing interactive repositories that do not select it. Ascendancy-like native patching should not receive emulator policy, and shadPS4 correctness work should not receive `DllMain`/machine-code patch rules simply because another RE project needed them.
 
 Example configurations live under [`examples/`](./examples/).
 
