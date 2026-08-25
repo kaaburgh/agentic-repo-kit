@@ -255,6 +255,7 @@ class KitTests(unittest.TestCase):
             "project": CONFIG.replace('roadmap = "ROADMAP.md"', 'roadmap = "ROADMAP.md"\nunknown = true'),
             "workflow": CONFIG + '\n[workflow]\nunknown = true\n',
             "local": CONFIG + '\n[local]\npolicy_file = ["local.md"]\n',
+            "roadmap": CONFIG + '\n[roadmap]\nready_floors = 2\n',
         }
         for name, config in cases.items():
             with self.subTest(name=name):
@@ -299,6 +300,34 @@ class KitTests(unittest.TestCase):
         (root / ".agentic-repo.toml").write_text(CONFIG.replace("kit_version = 1", "kit_version = 2"), encoding="utf-8")
         with self.assertRaises(AgenticRepoError):
             load_config(root / ".agentic-repo.toml")
+
+    def test_roadmap_setting_types_and_ranges_are_validated(self) -> None:
+        cases = (
+            'extra_statuses = "Awaiting review"',
+            'extra_statuses = [" "]',
+            'enforce_status_vocabulary = "yes"',
+            "ready_floor = -1",
+            'ready_floor = "many"',
+            "ready_floor_fraction = 1.5",
+            "chokepoint_fraction = -0.1",
+            'chokepoint_fraction = "half"',
+        )
+        for setting in cases:
+            with self.subTest(setting=setting):
+                temp, root = self.make_repo()
+                self.addCleanup(temp.cleanup)
+                bad = CONFIG + f"\n[roadmap]\n{setting}\n"
+                (root / ".agentic-repo.toml").write_text(bad, encoding="utf-8")
+                with self.assertRaises(AgenticRepoError):
+                    load_config(root / ".agentic-repo.toml")
+
+    def test_roadmap_settings_default_without_the_table(self) -> None:
+        temp, root = self.make_repo()
+        self.addCleanup(temp.cleanup)
+        roadmap = load_config(root / ".agentic-repo.toml").roadmap
+        self.assertEqual((), roadmap.extra_statuses)
+        self.assertFalse(roadmap.enforce_status_vocabulary)
+        self.assertEqual(1, roadmap.ready_floor)
 
     def test_workflow_boolean_type_is_validated(self) -> None:
         temp, root = self.make_repo()

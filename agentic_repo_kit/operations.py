@@ -10,7 +10,7 @@ from .config import RepositoryConfig, load_config
 from .errors import AgenticRepoError
 from .paths import confined_repo_path, validate_output_path
 from .render import GENERATED_MARKER, render_generated_files
-from .roadmap import structured_roadmap_problems
+from .roadmap import analyze_roadmap, build_roadmap_graph
 
 
 CONFIG_NAME = ".agentic-repo.toml"
@@ -36,8 +36,17 @@ TRUSTED_GENERATED_PATHS = frozenset(
 
 @dataclass(frozen=True)
 class CheckResult:
+    """Contract verdict plus the advisory planning signal derived alongside it.
+
+    Only `problems` decides `ok`. Metrics and warnings describe the shape of a
+    roadmap that is structurally valid, and must never fail the check: a check
+    people learn to work around stops protecting anything.
+    """
+
     ok: bool
     problems: tuple[str, ...]
+    warnings: tuple[str, ...] = ()
+    metrics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -253,17 +262,24 @@ def check(root: Path, config_path: Path) -> CheckResult:
         if path.suffix.lower() == ".md":
             markdown_paths.append(path)
 
+    warnings: list[str] = []
+    metrics: list[str] = []
     if roadmap.is_file():
         roadmap_text = roadmap.read_text(encoding="utf-8")
         markdown_paths.append(roadmap)
-        problems.extend(
-            structured_roadmap_problems(
-                roadmap_text,
-                path=str(roadmap.relative_to(root)),
-            )
-        )
+        graph = build_roadmap_graph(roadmap_text, path=str(roadmap.relative_to(root)))
+        problems.extend(graph.problems)
+        analysis = analyze_roadmap(graph, config.roadmap)
+        problems.extend(analysis.problems)
+        warnings.extend(analysis.warnings)
+        metrics.extend(analysis.metrics)
     problems.extend(_markdown_link_problems(root, markdown_paths))
-    return CheckResult(ok=not problems, problems=tuple(problems))
+    return CheckResult(
+        ok=not problems,
+        problems=tuple(problems),
+        warnings=tuple(warnings),
+        metrics=tuple(metrics),
+    )
 
 
 def roadmap_normalization_packet(root: Path, config: RepositoryConfig) -> str:
