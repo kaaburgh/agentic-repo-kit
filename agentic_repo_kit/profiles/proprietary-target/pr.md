@@ -7,3 +7,4 @@
 - [ ] Gated items state `Operator cost` as `<sessions> × <minutes>` or `unknown (measured by <ID>)`; no estimate was invented to replace an unknown.
 - [ ] A first successful gated run recorded measured end-to-end operator time in its run record and durable docs.
 - [ ] A batched session established matching baselines, scenario/config identity, instrumentation build and run provenance, named every item it serves, and did not merge their acceptance.
+- [ ] A batched session established that no item's instrumentation materially changes what another item observes; where that was uncertain rather than established, the items ran separately and the reason is recorded.

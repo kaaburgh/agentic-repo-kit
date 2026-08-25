@@ -119,6 +119,10 @@ class PlanningWorkabilityPolicyTests(unittest.TestCase):
         self.assertIn("run them separately and record why", agents)
         self.assertIn("shared capture is one run, not one validation", playbook)
         self.assertIn("did not merge their acceptance", pr)
+        # A shared instrumentation build can still carry probes that perturb
+        # another capture, so the checklist must ask that question separately.
+        self.assertIn("no item's instrumentation materially changes what another item observes", pr)
+        self.assertIn("ran separately and the reason is recorded", pr)
 
 
 if __name__ == "__main__":
