@@ -8,3 +8,6 @@ roadmap = "ROADMAP.md"
 
 [workflow]
 cloud_first = true
+
+[roadmap]
+enforce_status_vocabulary = true
