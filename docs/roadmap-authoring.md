@@ -59,11 +59,27 @@ Each active item should state enough of the following to avoid invention by the 
 - **Compatibility / safety:** ...
 - **Validation / acceptance:** ...
 - **Artifacts / docs:** ...
+- **Cycle outcome:** evidence / durable negative / operator handoff / tooling only (k|unknown) — remaining step
 - **Slice budget:** k/N plus the remaining slices, when the item spans several PRs
 - **Estimated scope:** Small / Medium / Large
 ```
 
 Investigation items should finish with knowledge or a decision. Implementation items should depend on established seams and state the observable behavior, compatibility boundary, and required validation.
+
+## Cycle outcome for work spanning cycles
+
+`Cycle outcome` is the durable, parseable latest result for work that commonly spans cycles. `Investigation first` and `Partially implemented` items carry the field. Fresh `Open` work does not need a predecessor yet, and terminal/validation-only states are not mechanically required to carry one.
+
+The accepted forms are exact enough for `agentic-repo check` to parse:
+
+- `Cycle outcome: evidence`
+- `Cycle outcome: durable negative`
+- `Cycle outcome: operator handoff`
+- `Cycle outcome: tooling only (<positive integer>|unknown) — <remaining step>`
+
+For `tooling only`, the integer is the consecutive tooling-only streak for that item. `unknown` is first-class and is not zero: use it when no provenance-bound predecessor establishes the count. The remaining step is mandatory so the durable record says what the tooling still has to be used for.
+
+`agentic-repo check` warns when an applicable item omits or malforms the field; the warning never fails the check. It can validate the current value's syntax, but it cannot prove continuity after the field has been overwritten: the previous value is no longer present in the current roadmap. A runner that updates the field must therefore read the predecessor before writing the new value (or use an explicitly trusted external predecessor record), and review remains responsible for whether a claimed streak is honest. In particular, a current `tooling only (1)` cannot be mechanically distinguished from a dishonest reset after an earlier tooling-only cycle once the predecessor has been overwritten.
 
 ## Slice budget for multi-PR items
 
