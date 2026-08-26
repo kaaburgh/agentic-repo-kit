@@ -86,6 +86,25 @@ class AuditDerivedPolicyTests(unittest.TestCase):
         self.assertIn("cycle outcome for the selected item", cycle)
         self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
 
+    def test_consecutive_count_declares_its_source_persistence_and_unknown(self) -> None:
+        root = self.make_repo(CYCLE_CONFIG)
+        cycle = (root / "docs/agent-cycle-run.md").read_text(encoding="utf-8")
+
+        # A count with no named source is the failure this rule exists to avoid:
+        # a stateless scheduler reports 1 every cycle and satisfies the contract.
+        self.assertIn("stateless scheduler will correctly report `1` every time", cycle)
+        self.assertIn("owning item's durable state in the repository", cycle)
+        self.assertIn("external runner record the repository explicitly trusts", cycle)
+        self.assertIn("report `unknown`", cycle)
+        self.assertIn("is not the same as zero", cycle)
+        self.assertIn("write this cycle's outcome back to that same durable record", cycle)
+        # Start-of-cycle must read the predecessor, not only the report write it.
+        self.assertIn("Resolve the previous cycle outcome for the item", cycle)
+        self.assertIn("rather than assuming there was no previous cycle", cycle)
+        # The contract states its own enforcement boundary, per ARK22.
+        self.assertIn("not something the repository contract check verifies", cycle)
+        self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
+
     def test_cycle_outcome_section_is_scoped_to_the_unattended_profile(self) -> None:
         root = self.make_repo(CORE_CONFIG)
         self.assertFalse((root / "docs/agent-cycle-run.md").exists())
