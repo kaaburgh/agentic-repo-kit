@@ -36,6 +36,8 @@ Run the narrowest meaningful checks first, then broader checks warranted by the 
 
 When an evidence-producing CI job uses selective triggers, include every material producer, parser, schema, manifest, and configuration input that can change the validated output. Use broader triggering when a narrow dependency set cannot be maintained reliably.
 
+A rule described as enforced must be enforced by a property of the data, not by a field in which the producer declares its own compliance. Comparing a self-declared label reports conformance that was never checked, and reads to every later agent as though it had been. Where a rule can only be judged by a person, say so where the rule is written and wherever a validator would otherwise appear to cover it.
+
 Do not invent commands, targets, performance numbers, supported versions, or architecture details. If an important premise is unknown, turn it into an observation or experiment before implementation.
 
 ## Tool availability and operator handoff

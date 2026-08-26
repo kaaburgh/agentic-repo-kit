@@ -16,4 +16,6 @@ For runtime experiments, define success with an oracle that directly distinguish
 
 Keep harness capability separate from target-specific evidence. A synthetic fixture, redistributable control target, or mock can establish that input injection, breakpoint control, capture, decoding, or artifact generation works; it does not establish the corresponding behavior on the exact target until that target is run under the stated scenario and oracle.
 
+Do not build a second producer for a question the repository is already tooled for while the existing producer's result is unrecorded. Repeated instrumentation converts an evidence gap into a tooling backlog, and each new producer is individually defensible, so the duplication is visible only across the sequence. Where a producer's output is itself the evidence, commit that output rather than leaving it in an expiring CI artifact.
+
 Substantial findings belong under `docs/re/`; reproducible experiments and negative results belong under `docs/experiments/`. Save signatures, structures, call sequences, scripts, parsers, and other reusable RE outputs in the repository when licensing permits.

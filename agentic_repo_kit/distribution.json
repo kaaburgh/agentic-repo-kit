@@ -1,7 +1,7 @@
 {
-  "artifact": "agentic-repo-kit-0.1.15.pyz",
-  "release": "v0.1.15",
+  "artifact": "agentic-repo-kit-0.1.16.pyz",
+  "release": "v0.1.16",
   "repository": "kaaburgh/agentic-repo-kit",
-  "sha256": "a3df8c722ef6a14f92b3c8e145daa7b5a032710a225c7f3c57ef6d9605268a68",
-  "tool_version": "0.1.15"
+  "sha256": "4924302d2d96fc0c420a138a7e723f709fbcc65268083a36104208983b047342",
+  "tool_version": "0.1.16"
 }
