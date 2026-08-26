@@ -10,6 +10,7 @@ from .config import RepositoryConfig, load_config
 from .cycle_outcome import cycle_outcome_warnings
 from .errors import AgenticRepoError
 from .paths import confined_repo_path, validate_output_path
+from .record_orphans import record_orphan_warnings
 from .render import GENERATED_MARKER, render_generated_files
 from .roadmap import analyze_roadmap, build_roadmap_graph
 
@@ -274,6 +275,15 @@ def check(root: Path, config_path: Path) -> CheckResult:
         problems.extend(analysis.problems)
         warnings.extend(analysis.warnings)
         warnings.extend(cycle_outcome_warnings(graph, config.roadmap))
+        warnings.extend(
+            record_orphan_warnings(
+                root,
+                roadmap,
+                roadmap_text,
+                graph,
+                config.roadmap.record_directories,
+            )
+        )
         metrics.extend(analysis.metrics)
     problems.extend(_markdown_link_problems(root, markdown_paths))
     return CheckResult(
