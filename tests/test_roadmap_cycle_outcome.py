@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 import unittest
 
-from agentic_repo_kit.config import RoadmapConfig
+from agentic_repo_kit.config import RoadmapConfig, load_config
 from agentic_repo_kit.cycle_outcome import cycle_outcome_warnings
+from agentic_repo_kit.render import render_generated_files
 from agentic_repo_kit.roadmap import build_roadmap_graph
 
 
@@ -18,6 +19,8 @@ def warnings_for(text: str) -> tuple[str, ...]:
 
 
 class CycleOutcomeTests(unittest.TestCase):
+    maxDiff = None
+
     def test_investigation_item_without_outcome_warns(self) -> None:
         text = '''\
 ### R1 — Open question across cycles
@@ -104,6 +107,12 @@ class CycleOutcomeTests(unittest.TestCase):
         warnings = warnings_for(text)
         self.assertEqual(1, len(warnings))
         self.assertIn("standalone **Cycle outcome:**", warnings[0])
+
+    def test_dogfood_generated_roadmap_guidance_is_current(self) -> None:
+        actual = (ROOT / "docs/roadmap-authoring.md").read_text(encoding="utf-8")
+        config = load_config(ROOT / ".agentic-repo.toml")
+        expected = render_generated_files(config, ROOT)["docs/roadmap-authoring.md"]
+        self.assertEqual(expected, actual)
 
     def test_dogfood_lock_pins_generated_roadmap_guidance(self) -> None:
         actual = hashlib.sha256((ROOT / "docs/roadmap-authoring.md").read_bytes()).hexdigest()
