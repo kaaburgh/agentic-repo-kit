@@ -4,4 +4,6 @@
 - [ ] Claims match validation actually performed.
 - [ ] New evidence that invalidated the plan is reflected in roadmap/docs rather than hidden by the implementation.
 - [ ] Structured roadmap IDs/dependencies remain valid and acyclic when this PR changes roadmap sequencing.
+- [ ] A producer/instrumentation/contract item's first slice produced one real end-to-end output, or the PR states why the narrow path was unavailable.
+- [ ] A multi-PR item carries `Slice budget: k/N`; exceeding it splits the item or re-budgets with a stated justification.
 - [ ] Evidence-producing CI/path filters cover the material producer/parser/schema/manifest/config dependencies that can change the validated result.

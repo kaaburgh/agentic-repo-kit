@@ -391,6 +391,105 @@ Both overlap the existing `core` sections "Tool availability and operator handof
 - **Artifacts / docs:** `agentic_repo_kit/profiles/roadmap-issues/`, `tests/test_roadmap_issues_profile.py`, tracking issue #23, package/distribution metadata
 - **Estimated scope:** Small/Medium
 
+## M7 — workable planning, not only well-formed planning
+
+> `agentic-repo check` reports whether a roadmap can actually be worked, not only whether its graph parses. A roadmap can hold unique IDs, resolvable dependencies and an acyclic graph while offering almost nothing to select from; an unattended agent keeps selecting from that ready set regardless, so the shape of the graph has to be visible.
+
+### ARK17 — Report ready-work surface and dependency chokepoints
+
+- **Status:** Completed and verified
+- **Priority:** High
+- **Category:** Core tooling / validation
+- **Depends on:** ARK9, ARK20
+- **Problem / question:** A planning review of a consuming repository found a roadmap that `check` validated green on every commit while holding 2 ready items out of 34, 24 blocked items, and 22 items transitively behind a single never-validated item. Which of that is derivable from the graph the kit already parses, and what must never be derived from it?
+- **Known evidence:** The pathology produced ten consecutive PRs grinding the only unblocked lane, the last four emitting nothing at runtime, each individually bounded, provenance-carrying and CI-green. It was visible only in the sequence. `structured_roadmap_problems` already built the dependency graph and discarded it, returning only problem strings, and `CheckResult` carried no channel for anything that is not a failure.
+- **Implementation evidence:** `build_roadmap_graph` now returns the parsed items and resolved edges alongside the problems, so the metrics consume exactly the graph that was validated rather than a second traversal that can disagree with it; `structured_roadmap_problems` remains as a thin wrapper over it. `analyze_roadmap` reports the ready surface and the dependency chokepoints, `CheckResult` gained `warnings` and `metrics` fields that do not participate in `ok`, and the CLI prints metrics on stdout and warnings on stderr while preserving its exit codes. The ratio is taken against outstanding rather than total items: closed work stays in the document forever, so measuring against everything ever written decays towards zero on a healthy mature roadmap — this repository's own roadmap reported a false `1/15 (6.7%)` under the first implementation. Only chokepoints that are not themselves behind another chokepoint are reported, because every early link of a long chain otherwise qualifies and buries the one item that has to be unblocked. Thresholds live in a new `[roadmap]` config table.
+- **Validation evidence:** A synthetic reconstruction of the reviewed shape (34 items, one never-validated gate, a 22-item chain, two unbounded ready items) reports `ready = 2/34 outstanding (5.9%)` and `chokepoint: ENV1 gates 31/34 outstanding (91.2%)` — the two lines that were the entire conclusion of a multi-hour manual review — while `check` still returns ok. CI run `32906102244` and `Agentic repository contract` run `32906102180` both passed on exact review-corrected head `c8025f913c5909e53cf47be554fcbba18cdf16da`: 124 unit tests, `python -m agentic_repo_kit check .`, and `check` executed from the pinned artifact after its digest was verified against the lock. The only delta since that head is this roadmap reconciliation. ARK16 then merged to `main` claiming the same 0.1.14 identity with a different digest, so this work moved to package version 0.1.15 and re-pinned its own artifact; CI run `32927211827` and contract run `32927211816` passed on the merged head `a5d4fab091b6974c75eddb976768272fe37412a6` with the full 127-test suite, and the only delta since that head is this roadmap reconciliation.
+- **Validation / acceptance:**
+  - ready surface and chokepoints are reported for a normalized roadmap, and a milestone-only sketch produces neither;
+  - a ready surface below the configured floor warns and `check` still exits 0;
+  - no metric or warning can turn a passing check into a failing one;
+  - transitive chokepoint attribution is correct and only maximal chokepoints are named;
+  - thresholds are configurable and their defaults are documented;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/roadmap.py`, `agentic_repo_kit/operations.py`, `agentic_repo_kit/cli.py`, `agentic_repo_kit/config.py`, roadmap-authoring guidance, `tests/test_roadmap_planning_metrics.py`, package version
+- **Estimated scope:** Medium
+
+### ARK18 — Treat operator attention as a budgeted resource
+
+- **Status:** Completed (contract scope)
+- **Priority:** Medium
+- **Category:** Proprietary-target policy
+- **Depends on:** ARK4, ARK7
+- **Problem / question:** The gated-work machinery — execution-environment classification, one-shot experiment design, bounded run records, operator handoff — assumes a human will be available to run the experiment, but never asks how much of that person's time the plan requires in total. The reviewed repository reached 16 GATED items, several specifying repeated bounded captures, with the cost of a single operator session never measured.
+- **Known evidence:** Compute is elastic; the operator who owns the proprietary target is not. At a plausible 40 minutes per session end to end, that plan silently demanded tens of hours of manual work appearing nowhere in it. The same repository had independently written a co-capture batching rule by hand for exactly three of its items under a project-specific name, which is evidence that a strict one-item-one-run reading of the one-shot contract pushes apart items that wanted evidence from the same run.
+- **Implementation evidence:** The `proprietary-target` profile now requires an `Operator cost` on gated items, as `<sessions> × <minutes>` or `unknown (measured by <ID>)`, with `unknown` a permitted durable value that must not be replaced by a plausible-looking estimate — the same rule that already forbids inventing performance numbers. The first successful gated run measures real end-to-end operator time into its run record and durable docs, and the contract states that measurement showing a plan to be too expensive is a reason to replan rather than a failure. The batching rule states its preconditions, keeps each artifact class validating independently, and forbids batching where one item's instrumentation materially changes what another observes. The aggregate belongs in the operator-facing derived projection the kit already defines.
+- **Validation evidence:** Generation tests assert the policy text reaches generated `AGENTS.md`, `docs/agent-playbook.md` and the PR template for a repository selecting the profile, and `check` passes for that configuration. This is contract-scope validation only: no live repository has yet recorded a measured operator cost, so the honest terminal status for this item is `Completed (contract scope)` rather than `Completed and verified`. Review of this change found that the PR checklist could be ticked while the batching rule was violated, because a shared instrumentation build can still carry probes that perturb another capture; the non-perturbation judgement is now its own checklist line with generation coverage. CI run `32906102244` and contract run `32906102180` passed on the review-corrected head `c8025f913c5909e53cf47be554fcbba18cdf16da`, which includes that checklist line and its generation test. ARK16 then merged to `main` claiming the same 0.1.14 identity with a different digest, so this work moved to package version 0.1.15 and re-pinned its own artifact; CI run `32927211827` and contract run `32927211816` passed on the merged head `a5d4fab091b6974c75eddb976768272fe37412a6` with the full 127-test suite, and the only delta since that head is this roadmap reconciliation.
+- **Validation / acceptance:**
+  - generated policy states the field, its two permitted forms, and that `unknown` names the measuring item;
+  - generated policy requires the first successful gated run to record measured end-to-end operator time;
+  - generated policy states the batching preconditions, independent validation, and the perturbation prohibition;
+  - the PR fragment covers batched-session claims;
+  - replanning is framed as an expected outcome of measurement;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/proprietary-target/{agents,playbook,pr}.md`, `tests/test_planning_workability_policy.py`, package version
+- **Estimated scope:** Small
+
+### ARK19 — Require a vertical slice before formalisation
+
+- **Status:** Completed (contract scope)
+- **Priority:** Medium
+- **Category:** Core policy
+- **Depends on:** none
+- **Problem / question:** In the reviewed repository the sequence contract, conformance vector, independent implementation of the vector, source mapping, admission contract produced five slices and zero emitted events. Is that bad luck, or the expected output of the selection rule an agent is given?
+- **Known evidence:** It is generated behaviour. When an agent has no runtime access and the bar for rigour is high, formalisation is the only action that is always available and always passes review, so an agent selecting the best available bounded item will keep choosing it indefinitely. Every one of those PRs was correct in isolation; the defect existed only in the ordering.
+- **Implementation evidence:** `core` policy now requires the first slice of any producer, instrumentation or contract item to produce one real end-to-end output on the narrowest path that can carry one, with schemas, conformance vectors, admission contracts and cross-language checks sequenced after it. The rule explicitly does not weaken evidence or provenance requirements, does not permit synthetic evidence to be presented as runtime evidence, and is not a reason to skip a contract — only to sequence it. It is also explicitly not a reason to idle: where the narrow path is genuinely gated, the existing handoff rules apply and formalisation while properly blocked stays legitimate, because that case is indistinguishable from the defect inside any single PR. The PR template asks which end-to-end output the first slice produced.
+- **Validation evidence:** Generation tests assert the rule and each of its guards reach generated `AGENTS.md` and the PR template, and `check` passes. This is contract-scope validation only: no live repository has yet had a first slice sequenced by this rule, so the honest terminal status is `Completed (contract scope)`. CI run `32906102244` and contract run `32906102180` passed on head `c8025f913c5909e53cf47be554fcbba18cdf16da`. ARK16 then merged to `main` claiming the same 0.1.14 identity with a different digest, so this work moved to package version 0.1.15 and re-pinned its own artifact; CI run `32927211827` and contract run `32927211816` passed on the merged head `a5d4fab091b6974c75eddb976768272fe37412a6` with the full 127-test suite, and the only delta since that head is this roadmap reconciliation.
+- **Validation / acceptance:**
+  - generated `core` policy states the first-slice rule with its narrowest-path framing;
+  - the existing evidence and provenance bars are explicitly preserved and the properly-blocked case is named as the exception;
+  - the rule is placed with the adjacent existing wording rather than duplicating it;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/core/{agents,pr}.md`, `tests/test_planning_workability_policy.py`, package version
+- **Estimated scope:** Small
+
+### ARK20 — Ship a closed status vocabulary validated by check
+
+- **Status:** Completed and verified
+- **Priority:** High
+- **Category:** Core tooling / validation
+- **Depends on:** ARK9
+- **Problem / question:** Roadmap authoring recommended a status vocabulary with "such as" and `check` required only that a `Status` field exist. In the reviewed repository 29 of 34 items used values outside that list and nobody noticed. What can be validated mechanically without breaking every existing consumer roadmap on upgrade?
+- **Known evidence:** Two values were missing and are therefore reinvented per project: `Completed (contract scope)`, without which contract work is recorded as plain `Completed` and the distinction between a closed contract and confirmed behaviour disappears; and `Blocked (<ID>)`, without which a chokepoint is visible only by reading every dependency field at once. The status value was already extracted through `_field_matches(item, "status")`, so the parsing work was already done.
+- **Implementation evidence:** The kit ships the closed vocabulary, `check` validates membership, and `.agentic-repo.toml` extends it through `roadmap.extra_statuses`. Three details a naive membership test gets wrong are handled: the compact `Status / priority / execution` label carries its value positionally, so membership is tested against the status component and a component-count mismatch is reported rather than guessed; `Blocked (<ID>)` is parameterised, so its ID is validated against the same grammar the dependency parser uses and must resolve to a known item; and membership is advisory by default, because a hard failure would turn every existing structurally valid roadmap red on upgrade with no repository change — `roadmap.enforce_status_vocabulary` promotes it to a failure for projects that want the stricter contract. A configured extension is valid but deliberately carries no workable or dependency-satisfying semantics.
+- **Validation evidence:** Focused tests cover both field shapes, the parameterised member, an unresolvable blocker ID, project extension, the default-warn and enforced-fail migration paths, and the component-count mismatch. Both established dogfood presentation shapes still validate. CI run `32906102244` and `Agentic repository contract` run `32906102180` both passed on exact review-corrected head `c8025f913c5909e53cf47be554fcbba18cdf16da`: 124 unit tests, `python -m agentic_repo_kit check .`, and `check` executed from the pinned artifact after its digest was verified against the lock. The only delta since that head is this roadmap reconciliation. ARK16 then merged to `main` claiming the same 0.1.14 identity with a different digest, so this work moved to package version 0.1.15 and re-pinned its own artifact; CI run `32927211827` and contract run `32927211816` passed on the merged head `a5d4fab091b6974c75eddb976768272fe37412a6` with the full 127-test suite, and the only delta since that head is this roadmap reconciliation.
+- **Validation / acceptance:**
+  - the shipped vocabulary replaces the advisory list in generated roadmap-authoring guidance and includes both missing values;
+  - standalone and compact status fields both validate positionally;
+  - a `Blocked (<ID>)` blocker must resolve to a known item;
+  - the extension path and the default-warn migration are documented and tested;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/roadmap.py`, `agentic_repo_kit/config.py`, roadmap-authoring guidance, `tests/test_roadmap_status_vocabulary.py`, package version
+- **Estimated scope:** Medium
+
+### ARK21 — Require a slice budget for multi-PR items
+
+- **Status:** Completed and verified
+- **Priority:** Medium
+- **Category:** Core policy / validation
+- **Depends on:** ARK20
+- **Problem / question:** An item can sit at `Partially implemented` across any number of PRs with no completion criterion, because each PR is individually correct and the state "this is already the eighth slice" is recorded nowhere.
+- **Known evidence:** The reviewed repository recorded an eight-PR item as `Estimated scope: Medium`, because the vocabulary stopped at `Medium`, which also destroyed the estimate calibration the field exists to provide.
+- **Implementation evidence:** `core` policy and roadmap-authoring guidance require `Slice budget: k/N` plus the remaining slices on an item that plainly will not fit in one PR, and require exceeding it to either split the item into separate IDs or re-budget explicitly with a stated justification — an incremented budget without that justification being the failure the field exists to catch. `Estimated scope` gains `Large`, meaning "requires a slice budget". `check` warns when a `Partially implemented` item declares no budget and when the declared value is not `k/N`; `Estimated scope` itself is deliberately not mechanically validated in this item, which keeps the status enum the only vocabulary `check` enforces.
+- **Validation evidence:** Focused tests cover present, missing, malformed, the compact status field shape, and statuses that must not trigger the rule. Whether `k` has outgrown `N` is deliberately left to the reviewer and is covered by a test asserting the check stays silent. CI run `32906102244` and `Agentic repository contract` run `32906102180` both passed on exact review-corrected head `c8025f913c5909e53cf47be554fcbba18cdf16da`: 124 unit tests, `python -m agentic_repo_kit check .`, and `check` executed from the pinned artifact after its digest was verified against the lock. The only delta since that head is this roadmap reconciliation. ARK16 then merged to `main` claiming the same 0.1.14 identity with a different digest, so this work moved to package version 0.1.15 and re-pinned its own artifact; CI run `32927211827` and contract run `32927211816` passed on the merged head `a5d4fab091b6974c75eddb976768272fe37412a6` with the full 127-test suite, and the only delta since that head is this roadmap reconciliation.
+- **Validation / acceptance:**
+  - roadmap-authoring guidance documents the field, the split-or-re-budget rule, and `Estimated scope: Large`;
+  - `check` reports a missing or malformed budget on partially implemented items and the status-matching rule is explicit;
+  - the report is a warning, consistent with ARK17, and never fails the check;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/roadmap.py`, `agentic_repo_kit/profiles/core/{agents,pr}.md`, roadmap-authoring guidance, `tests/test_roadmap_slice_budget.py`, package version
+- **Estimated scope:** Small
+
 ## Later
 
 - Define versioned config/profile compatibility migrations when `kit_version = 2` is needed.

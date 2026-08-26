@@ -100,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "check":
             result = check(root, config_path)
+            for metric in result.metrics:
+                print(metric)
+            for warning in result.warnings:
+                print(f"WARNING: {warning}", file=sys.stderr)
             if result.ok:
                 print("agentic repository contract is consistent")
                 return 0

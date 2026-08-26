@@ -1,20 +1,20 @@
 {
   "distribution": {
-    "artifact": "agentic-repo-kit-0.1.14.pyz",
-    "release": "v0.1.14",
+    "artifact": "agentic-repo-kit-0.1.15.pyz",
+    "release": "v0.1.15",
     "repository": "kaaburgh/agentic-repo-kit",
-    "sha256": "e3518ca28e839fa1111aef150a137dd5b14c20b386d0ff88c1872703da0f7e37",
-    "tool_version": "0.1.14"
+    "sha256": "a3df8c722ef6a14f92b3c8e145daa7b5a032710a225c7f3c57ef6d9605268a68",
+    "tool_version": "0.1.15"
   },
   "format": 2,
   "generated": {
     ".github/copilot-instructions.md": "6fe72eca1eab8a997562d448c54a6bb8d4f7726186a07dfc6d328022a9b03bf2",
-    ".github/pull_request_template.md": "36bb3b090dd54470c0b6ef13e67f88f6a942e9771ba23ef332bbfb5ea1bac520",
+    ".github/pull_request_template.md": "26d3179dbd418e18c572c2c337261ae07f2df0a19fab4233f7f1e8b2aa91b128",
     ".github/workflows/agentic-repo-check.yml": "3851fb3a320ed3e7055dc42d2eca682491d1600e07aabba28ec03413d735a9c3",
-    "AGENTS.md": "3340c781bfe105d089358341f2814d981490c3a2088744e10c227afd15bd6254",
+    "AGENTS.md": "ea0a9b9b1bcb6e5d35e63614e232c3d4c312135922325e195ea27f8b4e61b479",
     "CLAUDE.md": "e68ff4b91505b9ca79f6f6656439c0c73a3448581f92407f25ee20aba9320088",
     "docs/agent-playbook.md": "778ecf58e4afe8889c8f03b2d25145613b7181772b83f36523f875bf2a166712",
-    "docs/roadmap-authoring.md": "43982a4c47b1fc3bab26a7acb544eb82ebe7bc3ff30eae1f9f09a00e0222a182"
+    "docs/roadmap-authoring.md": "a3375897dc2dbe254fe77a602ab4430b7f6f9c2c8d63a74958fb07d3b403f196"
   },
   "kit_version": 1,
   "profiles": [
@@ -25,5 +25,5 @@
     "name": "agentic-repo-kit",
     "roadmap": "ROADMAP.md"
   },
-  "tool_version": "0.1.14"
+  "tool_version": "0.1.15"
 }

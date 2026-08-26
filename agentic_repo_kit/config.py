@@ -23,6 +23,23 @@ class WorkflowConfig:
 
 
 @dataclass(frozen=True)
+class RoadmapConfig:
+    """Project-tunable roadmap vocabulary and derived-metric thresholds.
+
+    Defaults are chosen to be useful without configuration. The vocabulary is
+    advisory by default so that adopting a newer kit cannot turn an existing,
+    structurally valid roadmap red without a repository change; a project that
+    wants the stricter contract opts in with `enforce_status_vocabulary`.
+    """
+
+    extra_statuses: tuple[str, ...] = ()
+    enforce_status_vocabulary: bool = False
+    ready_floor: int = 1
+    ready_floor_fraction: float = 0.1
+    chokepoint_fraction: float = 0.5
+
+
+@dataclass(frozen=True)
 class LocalInputs:
     policy_files: tuple[str, ...] = ()
     playbook_files: tuple[str, ...] = ()
@@ -35,6 +52,7 @@ class RepositoryConfig:
     profiles: tuple[str, ...]
     project: ProjectConfig
     workflow: WorkflowConfig = field(default_factory=WorkflowConfig)
+    roadmap: RoadmapConfig = field(default_factory=RoadmapConfig)
     local: LocalInputs = field(default_factory=LocalInputs)
 
 
@@ -59,6 +77,51 @@ def _string_list(table: dict, key: str, *, context: str = "") -> tuple[str, ...]
     return tuple(value)
 
 
+def _fraction(table: dict, key: str, default: float) -> float:
+    value = table.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise AgenticRepoError(f"roadmap.{key} must be a number between 0 and 1")
+    value = float(value)
+    if not 0.0 <= value <= 1.0:
+        raise AgenticRepoError(f"roadmap.{key} must be a number between 0 and 1")
+    return value
+
+
+def _roadmap_config(raw: dict) -> RoadmapConfig:
+    table = _table(raw, "roadmap")
+    _reject_unknown(
+        table,
+        {
+            "extra_statuses",
+            "enforce_status_vocabulary",
+            "ready_floor",
+            "ready_floor_fraction",
+            "chokepoint_fraction",
+        },
+        "roadmap",
+    )
+
+    extra_statuses = _string_list(table, "extra_statuses", context="roadmap")
+    if any(not value.strip() for value in extra_statuses):
+        raise AgenticRepoError("roadmap.extra_statuses entries must be non-empty strings")
+
+    enforce = table.get("enforce_status_vocabulary", False)
+    if not isinstance(enforce, bool):
+        raise AgenticRepoError("roadmap.enforce_status_vocabulary must be a boolean")
+
+    ready_floor = table.get("ready_floor", 1)
+    if not isinstance(ready_floor, int) or isinstance(ready_floor, bool) or ready_floor < 0:
+        raise AgenticRepoError("roadmap.ready_floor must be a non-negative integer")
+
+    return RoadmapConfig(
+        extra_statuses=extra_statuses,
+        enforce_status_vocabulary=enforce,
+        ready_floor=ready_floor,
+        ready_floor_fraction=_fraction(table, "ready_floor_fraction", 0.1),
+        chokepoint_fraction=_fraction(table, "chokepoint_fraction", 0.5),
+    )
+
+
 def load_config(path: Path) -> RepositoryConfig:
     try:
         raw = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -67,7 +130,11 @@ def load_config(path: Path) -> RepositoryConfig:
     except tomllib.TOMLDecodeError as exc:
         raise AgenticRepoError(f"invalid TOML in {path}: {exc}") from exc
 
-    _reject_unknown(raw, {"kit_version", "profiles", "project", "workflow", "local"}, "top-level")
+    _reject_unknown(
+        raw,
+        {"kit_version", "profiles", "project", "workflow", "roadmap", "local"},
+        "top-level",
+    )
 
     kit_version = raw.get("kit_version")
     if not isinstance(kit_version, int) or isinstance(kit_version, bool) or kit_version < 1:
@@ -115,5 +182,6 @@ def load_config(path: Path) -> RepositoryConfig:
         profiles=profiles,
         project=ProjectConfig(name=name.strip(), kind=kind.strip(), roadmap=roadmap.strip()),
         workflow=workflow,
+        roadmap=_roadmap_config(raw),
         local=local,
     )

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
+from .config import RoadmapConfig
+
 
 _ITEM_HEADING = re.compile(r"^(#{2,4})\s+([A-Za-z][A-Za-z0-9._-]*)\s+(?:—|--|-)\s+(.+?)\s*$")
 _ANY_HEADING = re.compile(r"^(#{1,6})\s+")
@@ -24,6 +26,16 @@ class RoadmapItem:
     heading_level: int
     fields: dict[str, str]
     duplicate_fields: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class RoadmapGraph:
+    """A parsed roadmap plus the dependency edges its validation resolved."""
+
+    path: str
+    items: tuple[RoadmapItem, ...]
+    dependencies: dict[str, tuple[str, ...]]
+    problems: tuple[str, ...]
 
 
 def _normalize_field_name(raw: str) -> str:
@@ -173,18 +185,22 @@ def _dependency_ids(raw: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     return tuple(dependencies), tuple(malformed)
 
 
-def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple[str, ...]:
-    """Validate stable graph invariants for an already-normalized roadmap.
+def build_roadmap_graph(text: str, *, path: str = "ROADMAP.md") -> RoadmapGraph:
+    """Parse a normalized roadmap once and validate its stable graph invariants.
 
     A milestone sketch with no structured ID items is intentionally ignored:
     semantic normalization is a separate workflow and bootstrap/check must not
     make old planning documents invalid before that pass happens. Once at least
     one structured item exists, IDs/dependencies are validated fail-closed.
+
+    The parsed items and the resolved dependency edges are returned alongside the
+    problems so derived planning metrics consume exactly the graph that was
+    validated, instead of re-deriving a second one that can disagree with it.
     """
 
     items = parse_structured_items(text)
     if not items:
-        return ()
+        return RoadmapGraph(path=path, items=(), dependencies={}, problems=())
 
     problems: list[str] = []
     by_id: dict[str, RoadmapItem] = {}
@@ -278,4 +294,312 @@ def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple
         if state.get(item_id, 0) == 0:
             visit(item_id)
 
-    return tuple(problems)
+    return RoadmapGraph(
+        path=path,
+        items=tuple(by_id.values()),
+        dependencies=graph,
+        problems=tuple(problems),
+    )
+
+
+def structured_roadmap_problems(text: str, *, path: str = "ROADMAP.md") -> tuple[str, ...]:
+    """Return only the fail-closed graph problems for a normalized roadmap."""
+
+    return build_roadmap_graph(text, path=path).problems
+
+
+_STATUS_BLOCKED_TEMPLATE = "Blocked (<ID>)"
+_BLOCKED_ON_ITEM = re.compile(rf"^blocked\s*\(\s*({_ID})\s*\)$", re.IGNORECASE)
+_SLICE_BUDGET = re.compile(r"^(\d+)\s*/\s*(\d+)$")
+
+WORKABLE_STATUSES = (
+    "Open",
+    "Investigation first",
+    "Partially implemented",
+    "Implemented, validation incomplete",
+)
+SATISFYING_STATUSES = (
+    "Completed (contract scope)",
+    "Completed and verified",
+)
+CANONICAL_STATUSES = (
+    "Open",
+    "Investigation first",
+    "Blocked on target evidence",
+    _STATUS_BLOCKED_TEMPLATE,
+    "Partially implemented",
+    "Implemented, validation incomplete",
+    "Completed (contract scope)",
+    "Completed and verified",
+    "Superseded",
+    "Dropped",
+)
+SLICE_BUDGET_STATUS = "Partially implemented"
+
+_LITERAL_STATUSES = {
+    status.lower(): status for status in CANONICAL_STATUSES if status != _STATUS_BLOCKED_TEMPLATE
+}
+_CLOSED_STATUSES = frozenset(SATISFYING_STATUSES) | {"Superseded", "Dropped"}
+_WORKABLE = frozenset(status.lower() for status in WORKABLE_STATUSES)
+_SATISFYING = frozenset(status.lower() for status in SATISFYING_STATUSES)
+
+
+def _normalize_status(raw: str) -> str:
+    return " ".join(raw.strip().lower().split())
+
+
+@dataclass(frozen=True)
+class StatusReading:
+    """One item's status, read from a standalone or compact status field.
+
+    `canonical` is the shipped spelling for a recognized status, a configured
+    project extension, or `None` when the value is outside the vocabulary. A
+    project extension is a valid value but is deliberately neither workable nor
+    dependency-satisfying: only the shipped vocabulary carries those semantics.
+    """
+
+    label: str
+    value: str
+    canonical: str | None = None
+    blocker: str | None = None
+    problem: str | None = None
+
+    @property
+    def is_workable(self) -> bool:
+        return self.canonical is not None and self.canonical.lower() in _WORKABLE
+
+    @property
+    def is_satisfying(self) -> bool:
+        return self.canonical is not None and self.canonical.lower() in _SATISFYING
+
+
+def _status_component(label: str, value: str) -> tuple[str | None, str | None]:
+    """Read the status out of a possibly compact slash-separated field.
+
+    A compact label such as `Status / priority / execution` carries its value
+    positionally, so membership must be tested against the status component
+    rather than the whole value.
+    """
+
+    components = [_normalize_field_name(part) for part in label.split("/")]
+    if len(components) == 1:
+        return value.strip(), None
+    parts = [part.strip() for part in value.split("/")]
+    if len(parts) != len(components):
+        return None, (
+            f"a compact status field **{label}:** carrying {len(components)} labels but "
+            f"{len(parts)} value component(s), so its status cannot be read positionally"
+        )
+    return parts[components.index("status")], None
+
+
+def read_status(item: RoadmapItem, *, extra_statuses: tuple[str, ...] = ()) -> StatusReading | None:
+    """Return the item's status reading, or `None` when it declares no status."""
+
+    matches = _field_matches(item, "status")
+    if not matches:
+        return None
+
+    label, raw = matches[0]
+    if not raw.strip():
+        # An empty status is already a fail-closed graph problem; reporting it a
+        # second time as a vocabulary defect would just double the noise.
+        return None
+
+    value, problem = _status_component(label, raw)
+    if value is None:
+        return StatusReading(label=label, value=raw.strip(), problem=problem)
+
+    normalized = _normalize_status(value)
+    canonical = _LITERAL_STATUSES.get(normalized)
+    if canonical is not None:
+        return StatusReading(label=label, value=value, canonical=canonical)
+
+    blocked = _BLOCKED_ON_ITEM.match(value.strip())
+    if blocked is not None:
+        return StatusReading(
+            label=label,
+            value=value,
+            canonical=_STATUS_BLOCKED_TEMPLATE,
+            blocker=blocked.group(1),
+        )
+
+    for extra in extra_statuses:
+        if _normalize_status(extra) == normalized:
+            return StatusReading(label=label, value=value, canonical=extra)
+
+    return StatusReading(label=label, value=value, problem=f"unrecognized status {value!r}")
+
+
+@dataclass(frozen=True)
+class RoadmapAnalysis:
+    """Derived planning signal: reported facts, advisory warnings, hard problems."""
+
+    metrics: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+    problems: tuple[str, ...] = ()
+
+
+def _percentage(count: int, total: int) -> str:
+    return f"{(100.0 * count / total):.1f}%" if total else "0.0%"
+
+
+def _transitive_dependents(dependencies: dict[str, tuple[str, ...]]) -> dict[str, set[str]]:
+    """Map each item to the items that transitively depend on it.
+
+    A reported dependency cycle does not stop the traversal, so the visited set
+    is what keeps a cyclic roadmap from looping here.
+    """
+
+    dependents: dict[str, set[str]] = {item_id: set() for item_id in dependencies}
+    for item_id in dependencies:
+        seen: set[str] = set()
+        stack = list(dependencies.get(item_id, ()))
+        while stack:
+            current = stack.pop()
+            if current in seen or current not in dependents:
+                continue
+            seen.add(current)
+            if current != item_id:
+                dependents[current].add(item_id)
+            stack.extend(dependencies.get(current, ()))
+    return dependents
+
+
+def analyze_roadmap(graph: RoadmapGraph, config: RoadmapConfig) -> RoadmapAnalysis:
+    """Report the shape of an already-validated roadmap graph.
+
+    This never judges whether an item *should* be blocked and never reorders or
+    selects work. It reports the ready surface, the dependency chokepoints, and
+    the vocabulary/slice-budget defects that make those numbers unreadable.
+    """
+
+    if not graph.items:
+        return RoadmapAnalysis()
+
+    path = graph.path
+    total = len(graph.items)
+    by_id = {item.item_id: item for item in graph.items}
+
+    readings: dict[str, StatusReading] = {}
+    vocabulary: list[str] = []
+    for item in graph.items:
+        reading = read_status(item, extra_statuses=config.extra_statuses)
+        if reading is None:
+            continue
+        readings[item.item_id] = reading
+        if reading.problem is not None:
+            vocabulary.append(
+                f"{path}:{item.line}: structured item {item.item_id} has {reading.problem}; "
+                "use a shipped status or extend roadmap.extra_statuses"
+            )
+        elif reading.blocker == item.item_id:
+            vocabulary.append(
+                f"{path}:{item.line}: structured item {item.item_id} is blocked by itself"
+            )
+        elif reading.blocker is not None and reading.blocker not in by_id:
+            vocabulary.append(
+                f"{path}:{item.line}: structured item {item.item_id} is blocked by unknown item "
+                f"{reading.blocker}"
+            )
+
+    satisfied = {item_id for item_id, reading in readings.items() if reading.is_satisfying}
+    # Closed work stays in the document forever, so measuring the ready surface
+    # against every item ever written would decay towards zero on a healthy
+    # mature roadmap. Outstanding work is what an agent can actually select from.
+    outstanding = {
+        item.item_id
+        for item in graph.items
+        if item.item_id not in satisfied
+        and (
+            item.item_id not in readings
+            or readings[item.item_id].canonical not in _CLOSED_STATUSES
+        )
+    }
+    open_count = len(outstanding)
+    ready = [
+        item
+        for item in graph.items
+        if item.item_id in outstanding
+        and item.item_id in readings
+        and readings[item.item_id].is_workable
+        and all(dependency in satisfied for dependency in graph.dependencies.get(item.item_id, ()))
+    ]
+
+    if not open_count:
+        metrics = [f"ready = 0/0 outstanding; {total} item(s) total, all closed"]
+    else:
+        metrics = [
+            f"ready = {len(ready)}/{open_count} outstanding "
+            f"({_percentage(len(ready), open_count)}); {total} item(s) total"
+        ]
+
+    dependents = _transitive_dependents(graph.dependencies)
+    candidates: dict[str, int] = {}
+    for item in graph.items:
+        if item.item_id not in outstanding:
+            continue
+        gated = len(dependents.get(item.item_id, set()) & outstanding)
+        if gated and open_count and gated / open_count > config.chokepoint_fraction:
+            candidates[item.item_id] = gated
+
+    # Every early link of a long chain formally gates the rest of it. Report only
+    # the chokepoints that are not themselves behind another chokepoint, so the
+    # output names the item to unblock rather than the chain it sits in.
+    chokepoints = [
+        (gated, item_id)
+        for item_id, gated in candidates.items()
+        if not any(
+            other != item_id and item_id in dependents.get(other, set())
+            for other in candidates
+        )
+    ]
+    for gated, item_id in sorted(chokepoints, key=lambda entry: (-entry[0], entry[1])):
+        metrics.append(
+            f"chokepoint: {item_id} gates {gated}/{open_count} outstanding "
+            f"({_percentage(gated, open_count)})"
+        )
+
+    warnings: list[str] = []
+    if open_count and (
+        len(ready) < config.ready_floor or len(ready) / open_count < config.ready_floor_fraction
+    ):
+        warnings.append(
+            f"ready surface {len(ready)}/{open_count} outstanding "
+            f"({_percentage(len(ready), open_count)}) is below the configured floor "
+            f"(roadmap.ready_floor={config.ready_floor}, "
+            f"roadmap.ready_floor_fraction={config.ready_floor_fraction}); a small ready surface can "
+            "be correct while waiting on an external event, so this never fails the check"
+        )
+
+    unclassified = total - sum(1 for reading in readings.values() if reading.canonical is not None)
+    if unclassified:
+        warnings.append(
+            f"{unclassified}/{total} item(s) carry a status the ready and chokepoint metrics "
+            "cannot classify, so those numbers describe the remainder"
+        )
+
+    for item in graph.items:
+        reading = readings.get(item.item_id)
+        if reading is None or reading.canonical != SLICE_BUDGET_STATUS:
+            continue
+        budget = _field_matches(item, "slice budget")
+        if not budget or not budget[0][1].strip():
+            warnings.append(
+                f"{path}:{item.line}: structured item {item.item_id} is "
+                f"'{SLICE_BUDGET_STATUS}' without **Slice budget:**; declare `k/N` plus the "
+                "remaining slices, or split the item into separate IDs"
+            )
+        elif _SLICE_BUDGET.match(budget[0][1].strip()) is None:
+            warnings.append(
+                f"{path}:{item.line}: structured item {item.item_id} has malformed "
+                f"**Slice budget:** {budget[0][1]!r}; use `k/N`"
+            )
+
+    if config.enforce_status_vocabulary:
+        return RoadmapAnalysis(
+            metrics=tuple(metrics),
+            warnings=tuple(warnings),
+            problems=tuple(vocabulary),
+        )
+    return RoadmapAnalysis(metrics=tuple(metrics), warnings=tuple(vocabulary) + tuple(warnings))
