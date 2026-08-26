@@ -37,6 +37,7 @@ class RoadmapConfig:
     ready_floor: int = 1
     ready_floor_fraction: float = 0.1
     chokepoint_fraction: float = 0.5
+    record_directories: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,7 @@ def _roadmap_config(raw: dict) -> RoadmapConfig:
             "ready_floor",
             "ready_floor_fraction",
             "chokepoint_fraction",
+            "record_directories",
         },
         "roadmap",
     )
@@ -104,6 +106,12 @@ def _roadmap_config(raw: dict) -> RoadmapConfig:
     extra_statuses = _string_list(table, "extra_statuses", context="roadmap")
     if any(not value.strip() for value in extra_statuses):
         raise AgenticRepoError("roadmap.extra_statuses entries must be non-empty strings")
+
+    record_directories = _string_list(table, "record_directories", context="roadmap")
+    if any(not value.strip() for value in record_directories):
+        raise AgenticRepoError("roadmap.record_directories entries must be non-empty strings")
+    if len(set(record_directories)) != len(record_directories):
+        raise AgenticRepoError("roadmap.record_directories must not contain duplicates")
 
     enforce = table.get("enforce_status_vocabulary", False)
     if not isinstance(enforce, bool):
@@ -119,6 +127,7 @@ def _roadmap_config(raw: dict) -> RoadmapConfig:
         ready_floor=ready_floor,
         ready_floor_fraction=_fraction(table, "ready_floor_fraction", 0.1),
         chokepoint_fraction=_fraction(table, "chokepoint_fraction", 0.5),
+        record_directories=record_directories,
     )
 
 
