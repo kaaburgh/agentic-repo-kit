@@ -112,6 +112,12 @@ def _roadmap_config(raw: dict) -> RoadmapConfig:
         raise AgenticRepoError("roadmap.record_directories entries must be non-empty strings")
     if len(set(record_directories)) != len(record_directories):
         raise AgenticRepoError("roadmap.record_directories must not contain duplicates")
+    for relative in record_directories:
+        path = Path(relative)
+        if path.is_absolute() or any(part == ".." for part in path.parts):
+            raise AgenticRepoError(
+                f"roadmap.record_directories entries must be repository-relative and confined: {relative!r}"
+            )
 
     enforce = table.get("enforce_status_vocabulary", False)
     if not isinstance(enforce, bool):
