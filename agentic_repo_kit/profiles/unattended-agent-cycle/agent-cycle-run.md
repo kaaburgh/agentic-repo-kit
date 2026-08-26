@@ -14,7 +14,7 @@ At the start of every cycle:
 3. Resolve the authoritative `docs/agent-cycle-run.md` from the trusted default-branch head. If it exists, record its Git blob SHA as `CYCLE CONTRACT`. If it is absent, record `CYCLE CONTRACT: MISSING (absent on trusted revision <sha>)`. If an external runner supplies an immutable authoritative-blob pin, record that pin and its provenance instead. Never take authority from the PR-head copy merely because it is newer or is the only copy present.
 4. If the PR changes or introduces this contract, treat the PR-head copy as proposed content under review while continuing to execute the trusted default-branch or externally pinned contract. When the trusted revision reports `CYCLE CONTRACT: MISSING`, the cycle may inspect, validate, and review the proposed contract and perform ordinary repository work only under the external runner/prompt layer and already-trusted repository policy; the proposed copy cannot self-authorize unattended policy. The proposed contract becomes authoritative only after it passes the ordinary review/merge boundary and is present on the trusted revision.
 5. Record the evidence mechanism used to obtain each identity, such as repository API, Git object API, CLI, or reconstructed local checkout.
-6. Resolve the previous cycle outcome for the item this cycle is about to select, from the durable record named under **Cycle outcome**. Record the source used. When no provenance-bound source establishes it, record `unknown` rather than assuming there was no previous cycle.
+6. Resolve the previous cycle outcome for the item this cycle is about to select by reading its standalone **Cycle outcome:** roadmap field before changing it. A repository may explicitly trust an external runner record as the predecessor source instead; name that source when it does. When no provenance-bound source establishes the predecessor, use `unknown` rather than assuming there was no previous cycle.
 
 A later head change invalidates current-head claims made against the earlier SHA. Preserve earlier evidence as historical evidence instead of silently rebinding it.
 
@@ -26,13 +26,20 @@ A cycle may wait only when all currently executable independent work is exhauste
 
 ## Cycle outcome
 
-Classify what the cycle produced for its selected item: evidence for that item's open question; a durable negative result or blocker recorded together with a rewritten next step; an operator handoff naming exactly what is missing; or `tooling only`. Tooling is a legitimate outcome. Leaving it unclassified is not, because the repository contract's first-slice rule is only enforceable by someone who can see the sequence, and a cycle report is the record of one point in it.
+Classify what the cycle produced for its selected item and persist that classification in the item's standalone **Cycle outcome:** roadmap field. The permitted durable forms are:
 
-When the outcome is `tooling only`, name the owning item, the concrete step that remains, and how many consecutive cycles have now ended that way on that item. A reviewer sees one cycle; the consecutive count is the part of the pattern that does not fit inside one.
+- `evidence`;
+- `durable negative`;
+- `operator handoff`;
+- `tooling only (<positive integer>|unknown) — <remaining step>`.
 
-That count needs a source and a place to live, or a stateless scheduler will correctly report `1` every time and the sequence the count exists to expose stays invisible under a formally satisfied contract. Read it from the owning item's durable state in the repository, or from an external runner record the repository explicitly trusts, and name which was used. Where neither establishes it, report `unknown`; `unknown` is a permitted and durable value and is not the same as zero. Before the cycle finishes, write this cycle's outcome back to that same durable record, so the next cycle reads a real predecessor rather than restarting the count.
+Tooling is a legitimate outcome. Leaving it unclassified is not, because the repository contract's first-slice rule is only enforceable by someone who can see the sequence, and one cycle report is only one point in it.
 
-Whether a reported count is honest is a human judgement on the durable record, not something the repository contract check verifies.
+For `tooling only`, the count is the number of consecutive cycles that have now ended that way on the item and the remaining step is mandatory. Read the predecessor before overwriting the field. If the predecessor is `tooling only (k)`, advance the streak from that provenance-bound value; if no trusted predecessor establishes a count, persist `unknown`. `unknown` is first-class and is not zero. A repository may explicitly use a trusted external runner record instead of the roadmap field as the continuity source, but the report must name it and the durable roadmap state must still be reconciled with the cycle's current outcome.
+
+`agentic-repo check` can validate the current field's syntax and warn when an applicable item omits it. It cannot prove streak continuity after the prior value has been overwritten, so whether a reported count honestly follows its predecessor remains a review judgement. In particular, the checker cannot prove from one current roadmap that `tooling only (1)` did not overwrite an earlier tooling-only result.
+
+Before the cycle finishes, write the current outcome to the selected item's durable **Cycle outcome:** field (and to the same explicitly trusted external record when that record is the selected continuity source), so the next cycle can read a real predecessor rather than restarting the sequence.
 
 ## Pre-approved write paths
 
@@ -105,7 +112,7 @@ Every cycle report must include enough evidence to reconstruct what happened wit
 - write path used: `atomic Git-object`, `per-file fallback`, or `none — no repository writes`; include mechanism-level atomic-refusal errors and intermediate SHAs only when the corresponding write path requires them;
 - exact-SHA bindings for CI statuses, review requests, review verdicts, and PR-body reactions;
 - review threads grouped as resolved/addressed and open/partially-addressed/disputed/unaddressed;
-- cycle outcome for the selected item, and for `tooling only` the owning item id, the remaining step, the consecutive count or `unknown`, and the durable source it was read from and written back to;
+- cycle outcome for the selected item, the exact durable **Cycle outcome:** value written, and the predecessor/continuity source used; for `tooling only`, include the owning item id, remaining step, and the consecutive count or `unknown`;
 - every material `unknown` that remains;
 - an `INSTRUCTION DEFECTS` section naming stale, contradictory, impossible, or repository-inapplicable instructions discovered during the run. Use `none` only when none were observed.
 

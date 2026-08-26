@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 
 from .config import RepositoryConfig, load_config
+from .cycle_outcome import cycle_outcome_warnings
 from .errors import AgenticRepoError
 from .paths import confined_repo_path, validate_output_path
 from .render import GENERATED_MARKER, render_generated_files
@@ -272,6 +273,7 @@ def check(root: Path, config_path: Path) -> CheckResult:
         analysis = analyze_roadmap(graph, config.roadmap)
         problems.extend(analysis.problems)
         warnings.extend(analysis.warnings)
+        warnings.extend(cycle_outcome_warnings(graph, config.roadmap))
         metrics.extend(analysis.metrics)
     problems.extend(_markdown_link_problems(root, markdown_paths))
     return CheckResult(
