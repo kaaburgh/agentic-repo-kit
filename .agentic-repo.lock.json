@@ -3,7 +3,7 @@
     "artifact": "agentic-repo-kit-0.1.17.pyz",
     "release": "v0.1.17",
     "repository": "kaaburgh/agentic-repo-kit",
-    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "sha256": "bbe0cf869ed4dddabca50d4aae7442c09ab04952b2137fce775136e063fbc220",
     "tool_version": "0.1.17"
   },
   "format": 2,
@@ -14,7 +14,7 @@
     "AGENTS.md": "f04d653603362dc636ba31d76f14af14cf8e272f70bcdabee2e156671aa3f408",
     "CLAUDE.md": "e68ff4b91505b9ca79f6f6656439c0c73a3448581f92407f25ee20aba9320088",
     "docs/agent-playbook.md": "778ecf58e4afe8889c8f03b2d25145613b7181772b83f36523f875bf2a166712",
-    "docs/roadmap-authoring.md": "0000000000000000000000000000000000000000000000000000000000000000"
+    "docs/roadmap-authoring.md": "17f3e60dd3a175ba8ef777666bc0e346268b00319a1b6e97186af30a15887360"
   },
   "kit_version": 1,
   "profiles": [
