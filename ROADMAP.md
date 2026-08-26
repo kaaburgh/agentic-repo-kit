@@ -490,6 +490,42 @@ Both overlap the existing `core` sections "Tool availability and operator handof
 - **Artifacts / docs:** `agentic_repo_kit/roadmap.py`, `agentic_repo_kit/profiles/core/{agents,pr}.md`, roadmap-authoring guidance, `tests/test_roadmap_slice_budget.py`, package version
 - **Estimated scope:** Small
 
+### ARK22 — Enforce constraints by a data property, not a self-declared label
+
+- **Status:** Completed (contract scope)
+- **Priority:** Medium
+- **Category:** Core policy
+- **Depends on:** none
+- **Problem / question:** A contract can state that some class of evidence is inadmissible, a validator can appear to enforce it, and the enforcement can consist entirely of comparing a string in which the producer of the evidence asserts its own compliance. Is that a project-specific slip or a shape the contract invites?
+- **Known evidence:** An independent audit of a downstream repository (`kaaburgh/ascendancy-auto-management` issue #87, finding AUDIT-002) reproduced it with a bounded counterexample. The contract forbade promoting a presentation name to record identity; three separate modules rejected the literal basis `presentation-name`; the operator-supplied qualification input chose both the byte range and its own basis label, so declaring the presentation-name range under an approved label was accepted, and two records differing in every byte except the name qualified as the same logical record. Every layer read as enforcing the rule and none checked it.
+- **Implementation evidence:** `core` policy now requires a rule described as enforced to be checked against a property of the data rather than a field in which the producer declares its own compliance, states why the failure is compounding — a self-declared label reads to every later agent as though it had been verified — and requires rules that only a person can judge to say so both where the rule is written and wherever a validator would otherwise appear to cover it. The PR template carries the corresponding line.
+- **Validation evidence:** Generation tests assert the rule and its guards reach generated `AGENTS.md` and the PR template, and `check` passes for that configuration. This is contract-scope validation only: the audit that motivated the rule is evidence that the shape occurs, not evidence that this wording prevents it, so the honest terminal status is `Completed (contract scope)`.
+- **Validation / acceptance:**
+  - generated `core` policy distinguishes a checked property from a declared label;
+  - the human-judgement escape is explicit rather than implied;
+  - the rule is placed with the adjacent validation wording rather than duplicating it;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/core/{agents,pr}.md`, `tests/test_audit_derived_policy.py`, package version
+- **Estimated scope:** Small
+
+### ARK23 — Do not re-tool a question whose previous result is unrecorded
+
+- **Status:** Completed (contract scope)
+- **Priority:** Medium
+- **Category:** Reverse-engineering policy / unattended execution
+- **Depends on:** ARK19
+- **Problem / question:** ARK19 sequences the first slice of one item. It does not address the adjacent sequence in which each cycle builds a fresh producer for the same open question and none of their results is ever recorded, because every individual producer is defensible and the previous one's absence of output is not visible from the current PR.
+- **Known evidence:** The same audit (issue #87, findings AUDIT-006 and AUDIT-001) measured it: two roadmap items absorbed roughly twenty-five merged PRs and produced twenty-one machine-readable schemas with zero committed exact-target artifacts between them. One decision question had four independent producers built for it and one recorded answer, pinned to a head that was explicitly never rebound. Exact-target outputs went to CI artifacts with seven-day retention, so "the producer was built" was durable and "what it found" was not. One cycle recorded a transient sandbox network failure as the reason no target run happened; the auditing session fetched the same targets successfully.
+- **Implementation evidence:** `reverse-engineering` policy now forbids building a second producer for an already-tooled question while the existing producer's result is unrecorded, names why the duplication is invisible per-PR, and requires committing a producer's output when that output is itself the evidence rather than leaving it in an expiring CI artifact. The unattended cycle contract gains a `Cycle outcome` section requiring each cycle to classify what it produced for its selected item — evidence, a durable negative result with a rewritten next step, an operator handoff, or `tooling only` — and, for `tooling only`, to report the owning item, the remaining step and the consecutive count. Tooling is explicitly a legitimate outcome; only leaving it unclassified is not, because the count is the part of the pattern that does not fit inside one cycle report.
+- **Validation evidence:** Generation tests assert the reverse-engineering rule and the cycle-outcome section reach the generated contract for repositories selecting those profiles, that a `core`-only repository receives neither, and that `check` passes for each configuration. This is contract-scope validation only: no live repository has yet reported a cycle outcome under this rule, so the honest terminal status is `Completed (contract scope)`.
+- **Validation / acceptance:**
+  - the reverse-engineering rule ships only to repositories selecting that profile;
+  - the cycle-outcome requirement ships only with `unattended-agent-cycle`;
+  - `tooling only` is a permitted outcome and the consecutive count is the reported signal, with no threshold fixed in the kit;
+  - full unit tests and `python -m agentic_repo_kit check .` pass in CI on the exact head.
+- **Artifacts / docs:** `agentic_repo_kit/profiles/reverse-engineering/{agents,pr}.md`, `agentic_repo_kit/profiles/unattended-agent-cycle/agent-cycle-run.md`, `tests/test_audit_derived_policy.py`, package version
+- **Estimated scope:** Small
+
 ## Later
 
 - Define versioned config/profile compatibility migrations when `kit_version = 2` is needed.

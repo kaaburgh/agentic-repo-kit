@@ -9,3 +9,4 @@
 - [ ] Harness/control capability evidence is not presented as target-specific runtime evidence.
 - [ ] Negative results that prevent repeated dead ends are durable.
 - [ ] Runtime behavior is not claimed from static or synthetic evidence alone.
+- [ ] No new producer duplicates an already-tooled question whose previous result is still unrecorded.

@@ -23,6 +23,12 @@ Missing DNS, a missing CLI client, a missing working tree, and a non-first-class
 
 A cycle may wait only when all currently executable independent work is exhausted and a named external condition is already in flight, such as CI or review for one exact head SHA. The report must name that condition and SHA. A permanent runner property by itself never justifies waiting or an empty cycle.
 
+## Cycle outcome
+
+Classify what the cycle produced for its selected item: evidence for that item's open question; a durable negative result or blocker recorded together with a rewritten next step; an operator handoff naming exactly what is missing; or `tooling only`. Tooling is a legitimate outcome. Leaving it unclassified is not, because the repository contract's first-slice rule is only enforceable by someone who can see the sequence, and a cycle report is the record of one point in it.
+
+When the outcome is `tooling only`, name the owning item, the concrete step that remains, and how many consecutive cycles have now ended that way on that item. A reviewer sees one cycle; the consecutive count is the part of the pattern that does not fit inside one.
+
 ## Pre-approved write paths
 
 When a cycle performs repository writes, there are exactly two pre-approved write paths. A cycle that performs no repository writes uses the report value `none — no repository writes`; that is not a third write mechanism and does not require Path A/B details.
@@ -94,6 +100,7 @@ Every cycle report must include enough evidence to reconstruct what happened wit
 - write path used: `atomic Git-object`, `per-file fallback`, or `none — no repository writes`; include mechanism-level atomic-refusal errors and intermediate SHAs only when the corresponding write path requires them;
 - exact-SHA bindings for CI statuses, review requests, review verdicts, and PR-body reactions;
 - review threads grouped as resolved/addressed and open/partially-addressed/disputed/unaddressed;
+- cycle outcome for the selected item, and for `tooling only` the owning item id, the remaining step, and the consecutive count;
 - every material `unknown` that remains;
 - an `INSTRUCTION DEFECTS` section naming stale, contradictory, impossible, or repository-inapplicable instructions discovered during the run. Use `none` only when none were observed.
 

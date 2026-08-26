@@ -40,6 +40,7 @@
 - [ ] A producer/instrumentation/contract item's first slice produced one real end-to-end output, or the PR states why the narrow path was unavailable.
 - [ ] A multi-PR item carries `Slice budget: k/N`; exceeding it splits the item or re-budgets with a stated justification.
 - [ ] Evidence-producing CI/path filters cover the material producer/parser/schema/manifest/config dependencies that can change the validated result.
+- [ ] Rules this PR describes as enforced are checked against a property of the data, not against a self-declared label.
 
 ## Deliberately out of scope
 
