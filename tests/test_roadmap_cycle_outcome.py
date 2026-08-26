@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
 import unittest
 
 from agentic_repo_kit.config import RoadmapConfig
 from agentic_repo_kit.cycle_outcome import cycle_outcome_warnings
 from agentic_repo_kit.roadmap import build_roadmap_graph
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def warnings_for(text: str) -> tuple[str, ...]:
@@ -98,6 +104,11 @@ class CycleOutcomeTests(unittest.TestCase):
         warnings = warnings_for(text)
         self.assertEqual(1, len(warnings))
         self.assertIn("standalone **Cycle outcome:**", warnings[0])
+
+    def test_dogfood_lock_pins_generated_roadmap_guidance(self) -> None:
+        actual = hashlib.sha256((ROOT / "docs/roadmap-authoring.md").read_bytes()).hexdigest()
+        lock = json.loads((ROOT / ".agentic-repo.lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(actual, lock["generated"]["docs/roadmap-authoring.md"])
 
 
 if __name__ == "__main__":
