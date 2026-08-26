@@ -80,9 +80,9 @@ class AuditDerivedPolicyTests(unittest.TestCase):
         cycle = (root / "docs/agent-cycle-run.md").read_text(encoding="utf-8")
 
         self.assertIn("## Cycle outcome", cycle)
-        self.assertIn("`tooling only`", cycle)
+        self.assertIn("**Cycle outcome:** roadmap field", cycle)
+        self.assertIn("`tooling only (<positive integer>|unknown) — <remaining step>`", cycle)
         self.assertIn("Tooling is a legitimate outcome", cycle)
-        self.assertIn("consecutive cycles have now ended that way", cycle)
         self.assertIn("cycle outcome for the selected item", cycle)
         self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
 
@@ -90,20 +90,23 @@ class AuditDerivedPolicyTests(unittest.TestCase):
         root = self.make_repo(CYCLE_CONFIG)
         cycle = (root / "docs/agent-cycle-run.md").read_text(encoding="utf-8")
 
-        # A count with no named source is the failure this rule exists to avoid:
-        # a stateless scheduler reports 1 every cycle and satisfies the contract.
-        self.assertIn("stateless scheduler will correctly report `1` every time", cycle)
-        self.assertIn("owning item's durable state in the repository", cycle)
-        self.assertIn("external runner record the repository explicitly trusts", cycle)
-        self.assertIn("report `unknown`", cycle)
-        self.assertIn("is not the same as zero", cycle)
-        self.assertIn("write this cycle's outcome back to that same durable record", cycle)
-        # Start-of-cycle must read the predecessor, not only the report write it.
-        self.assertIn("Resolve the previous cycle outcome for the item", cycle)
-        self.assertIn("rather than assuming there was no previous cycle", cycle)
-        # The contract states its own enforcement boundary, per ARK22.
-        self.assertIn("not something the repository contract check verifies", cycle)
+        self.assertIn("reading its standalone **Cycle outcome:** roadmap field before changing it", cycle)
+        self.assertIn("external runner record", cycle)
+        self.assertIn("persist `unknown`", cycle)
+        self.assertIn("is first-class and is not zero", cycle)
+        self.assertIn("write the current outcome to the selected item's durable **Cycle outcome:** field", cycle)
+        self.assertIn("cannot prove streak continuity", cycle)
+        self.assertIn("cannot prove from one current roadmap", cycle)
         self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
+
+    def test_roadmap_guidance_defines_parseable_cycle_outcome(self) -> None:
+        root = self.make_repo(CORE_CONFIG)
+        guidance = (root / "docs/roadmap-authoring.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Cycle outcome for work spanning cycles", guidance)
+        self.assertIn("`Investigation first` and `Partially implemented` items carry the field", guidance)
+        self.assertIn("`unknown` is first-class and is not zero", guidance)
+        self.assertIn("cannot prove continuity after the field has been overwritten", guidance)
 
     def test_cycle_outcome_section_is_scoped_to_the_unattended_profile(self) -> None:
         root = self.make_repo(CORE_CONFIG)
