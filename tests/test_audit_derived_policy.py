@@ -18,6 +18,9 @@ roadmap = "ROADMAP.md"
 '''
 
 RE_CONFIG = CORE_CONFIG.replace('profiles = ["core"]', 'profiles = ["core", "reverse-engineering"]')
+BOTH_CONFIG = CORE_CONFIG.replace(
+    'profiles = ["core"]', 'profiles = ["core", "reverse-engineering", "proprietary-target"]'
+)
 CYCLE_CONFIG = CORE_CONFIG.replace('profiles = ["core"]', 'profiles = ["core", "unattended-agent-cycle"]')
 
 
@@ -51,8 +54,20 @@ class AuditDerivedPolicyTests(unittest.TestCase):
         self.assertIn("second producer for a question the repository is already tooled for", agents)
         self.assertIn("evidence gap into a tooling backlog", agents)
         self.assertIn("visible only across the sequence", agents)
-        self.assertIn("expiring CI artifact", agents)
+        self.assertIn("A retention window is not a record", agents)
         self.assertIn("already-tooled question whose previous result is still unrecorded", pr)
+        self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
+
+    def test_durable_result_rule_does_not_collide_with_proprietary_material_policy(self) -> None:
+        root = self.make_repo(BOTH_CONFIG)
+        agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+
+        self.assertIn("Do not commit proprietary executables/assets, private dumps", agents)
+        self.assertIn("must become durable rather than expire with a", agents)
+        self.assertIn("commit the safe derived artifact", agents)
+        self.assertIn("may not be committed under the repository's other rules", agents)
+        self.assertIn("commit its digest plus the reference", agents)
+        self.assertNotIn("commit that output rather than", agents)
         self.assertTrue(check(root, root / ".agentic-repo.toml").ok)
 
     def test_core_only_repository_does_not_receive_the_reverse_engineering_rule(self) -> None:
